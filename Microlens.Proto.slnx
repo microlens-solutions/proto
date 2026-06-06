@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/items/">
+    <File Path=".gitignore" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+  </Folder>
+</Solution>
