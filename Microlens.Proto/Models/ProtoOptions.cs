@@ -39,5 +39,7 @@ public sealed class ProtoOptions {
 
     public bool GlobalMiddlewareEnabled { get; set; } = true;
 
-    public bool GlobalInterceptorEnabled { get; set; } = true;
+    public bool GlobalClientInterceptorEnabled { get; set; } = true;
+
+    public bool GlobalServerInterceptorEnabled { get; set; } = true;
 }

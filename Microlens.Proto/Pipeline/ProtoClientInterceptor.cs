@@ -1,6 +1,7 @@
 ﻿using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using Microlens.Proto.Extensions;
 using Microlens.Proto.Formatters;
 using Microlens.Proto.Inspectors;
 using Microlens.Proto.Models;
@@ -28,7 +29,16 @@ internal sealed class ProtoClientInterceptor : Interceptor {
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation) {
         string methodName = "Unary";
 
-        if (!_options.GlobalInterceptorEnabled || context.Method.Name.StartsWith("Skip", StringComparison.OrdinalIgnoreCase) || !Helpers.IsInceptorApplicable(methodName, context.Method.Type)) {
+        if (!_options.GlobalClientInterceptorEnabled) {
+            return continuation(request, context);
+        }
+
+        if (!Helpers.ShouldApplyInterceptor(methodName, context.Method.Type)) {
+            return continuation(request, context);
+        }
+
+        if (Helpers.ShouldSkipInterceptor(context.Options.Headers)) {
+            _ = context.Options.Headers.Remove(Constants.K_SKIP_PROTO_INTERCEPTOR);
             return continuation(request, context);
         }
 
@@ -51,10 +61,6 @@ internal sealed class ProtoClientInterceptor : Interceptor {
     }
 
     private async Task TraceMessage<TMessage>(TMessage target, bool log, string methodName, MethodType methodType) where TMessage : class {
-        if (!Helpers.IsInceptorApplicable(methodName, methodType)) {
-            return;
-        }
-
         try {
             if (target is IMessage message) {
                 var nodes = _inspector.Inspect(message);

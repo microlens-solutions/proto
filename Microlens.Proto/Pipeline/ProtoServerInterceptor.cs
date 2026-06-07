@@ -6,6 +6,7 @@ using Microlens.Proto.Inspectors;
 using Microlens.Proto.Models;
 using Microlens.Proto.Shared;
 using Microlens.Proto.Sinks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Options;
 
@@ -27,7 +28,15 @@ internal sealed class ProtoServerInterceptor : Interceptor {
     }
 
     public override async Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context, UnaryServerMethod<TRequest, TResponse> continuation) {
-        if (!_options.GlobalInterceptorEnabled || !Helpers.IsInceptorApplicable(context.GetHttpContext().Request.ContentType)) {
+        if (!_options.GlobalServerInterceptorEnabled) {
+            return await continuation(request, context).ConfigureAwait(false);
+        }
+
+        if (!Helpers.ShouldApplyInterceptor(context.GetHttpContext().Request.ContentType)) {
+            return await continuation(request, context).ConfigureAwait(false);
+        }
+
+        if (Helpers.ShouldSkipInterceptor(context.GetHttpContext()?.GetEndpoint()?.Metadata)) {
             return await continuation(request, context).ConfigureAwait(false);
         }
 
@@ -52,10 +61,6 @@ internal sealed class ProtoServerInterceptor : Interceptor {
     }
 
     private async Task TraceMessage<TMessage>(TMessage target, bool log, string? contentType) where TMessage : class {
-        if (!Helpers.IsInceptorApplicable(contentType)) {
-            return;
-        }
-
         try {
             if (target is IMessage message) {
                 var nodes = _inspector.Inspect(message);

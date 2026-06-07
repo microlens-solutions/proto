@@ -29,7 +29,17 @@ internal sealed class ProtoMiddleware {
     }
 
     public async Task InvokeAsync(HttpContext context) {
-        if (!_options.GlobalMiddlewareEnabled || !Helpers.IsMiddlewareApplicable(context.Request.ContentType)) {
+        if (!_options.GlobalMiddlewareEnabled) {
+            await _next(context).ConfigureAwait(false);
+            return;
+        }
+
+        if (!Helpers.ShouldApplyMiddleware(context.Request.ContentType)) {
+            await _next(context).ConfigureAwait(false);
+            return;
+        }
+
+        if (Helpers.ShouldSkipMiddleware(context.GetEndpoint()?.Metadata)) {
             await _next(context).ConfigureAwait(false);
             return;
         }
@@ -46,7 +56,7 @@ internal sealed class ProtoMiddleware {
             await context.Request.Body.CopyToAsync(request).ConfigureAwait(false);
 
             context.Request.Body.Position = 0;
-            await TraceMessage(request, _options.LogScope.HasFlag(ProtoLogScope.Request), context.Request.ContentType);
+            await TraceMessage(request, _options.LogScope.HasFlag(ProtoLogScope.Request));
         }
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Response)) {
@@ -59,7 +69,7 @@ internal sealed class ProtoMiddleware {
 
             try {
                 await _next(context).ConfigureAwait(false);
-                await TraceMessage(response, _options.LogScope.HasFlag(ProtoLogScope.Response), context.Response.ContentType).ConfigureAwait(false);
+                await TraceMessage(response, _options.LogScope.HasFlag(ProtoLogScope.Response)).ConfigureAwait(false);
 
                 if (response.Length > 0) {
                     response.Position = 0;
@@ -75,11 +85,7 @@ internal sealed class ProtoMiddleware {
         }
     }
 
-    private async Task TraceMessage(RecyclableMemoryStream recyclable, bool log, string? contentType) {
-        if (!Helpers.IsMiddlewareApplicable(contentType)) {
-            return;
-        }
-
+    private async Task TraceMessage(RecyclableMemoryStream recyclable, bool log) {
         try {
             if (recyclable.Length > 0) {
                 var sequence = recyclable.GetReadOnlySequence();

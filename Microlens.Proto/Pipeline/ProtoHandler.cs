@@ -27,7 +27,16 @@ internal sealed class ProtoHandler : DelegatingHandler {
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!_options.GlobalHandlerEnabled || !Helpers.IsHandlerApplicable(request.Content?.Headers.ContentType)) {
+        if (!_options.GlobalHandlerEnabled) {
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (!Helpers.ShouldApplyHandler(request.Content?.Headers)) {
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (Helpers.ShouldSkipHandler(request.Content?.Headers)) {
+            _ = (request.Content?.Headers.Remove(Constants.K_SKIP_PROTO_HANDLER));
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
 
@@ -57,10 +66,6 @@ internal sealed class ProtoHandler : DelegatingHandler {
 
     private async Task TraceMessage(HttpContent? content, bool log, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-
-        if (!Helpers.IsHandlerApplicable(content?.Headers.ContentType)) {
-            return;
-        }
 
         try {
             if (content != null) {
