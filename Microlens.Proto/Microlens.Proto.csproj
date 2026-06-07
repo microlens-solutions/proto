@@ -1,11 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <Authors>Microlens</Authors>
+    <Copyright>Copyright © $([System.DateTime]::Now.Year) Microlens</Copyright>
+    <Description>High-performance schema-less diagnostic and logging library for Protocol Buffers.</Description>
+	  
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+	
+    <PackageId>Microlens.Proto</PackageId>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/microlens-solutions/proto</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>protocol-buffers;protobuf;grpc;unary;aspnetcore;middleware;delegating-handler;schema-less;diagnostic;</PackageTags>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+	
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.35.0" />
     <PackageReference Include="Grpc.AspNetCore.Server" Version="2.80.0" />
