@@ -1,427 +1,332 @@
-# Microlens.Proto
+# `Microlens.Proto`
 
-**`Microlens.Proto`** is a high-performance diagnostic and logging library for .NET designed to automatically intercept, decode, display and log **`Protocol Buffers (Protobuf)`** payloads across various network boundaries. 
+Decode and inspect `Protocol Buffer (Protobuf)` payloads without `.proto` files, generated classes or schema definitions.
 
-It analyzes `binary Protobuf` data on the fly **without requiring original `.proto` schema definitions**, making it an ideal tool for debugging, auditing and reverse-engineering distributed microservices.
+**`Microlens.Proto`** is a schema-less `Protobuf` inspection toolkit for .NET that automatically **intercepts**, **decodes**, **visualizes** and **logs** `Protobuf` traffic across `HTTP` and `gRPC` boundaries.
 
----
+Unlike traditional `Protobuf` libraries that require compile-time contracts, **`Microlens.Proto`** works directly against raw wire-format payloads, making it useful for **diagnostics**, **auditing**, **reverse engineering** and **production troubleshooting**.
 
-## High-level Architecture
-
-```text
-┌────────────────────────────────┐        ┌────────────────────────────────┐
-│       HTTP Network Layer       │        │       gRPC Network Layer       │
-│      (Handler/Middleware)      │        │ (Interceptors [Client/Server]) │
-└───────────────┬────────────────┘        └───────────────┬────────────────┘
-                │                                         │
-                │ ReadOnlySequence<byte>                  │ IMessage
-                │                                         │
-                ▼                                         ▼
-┌────────────────────────────────┐        ┌────────────────────────────────┐
-│          ProtoDecoder          │        │         ProtoInspector         │
-└───────────────┬────────────────┘        └───────────────┬────────────────┘
-                │                                         │
-                │ IReadOnlyList<ProtoNode>                │ IReadOnlyList<ProtoNode>
-                │                                         │
-                └────────────────────┬────────────────────┘
-                                     │
-                                     ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                  ProtoFormatterResolver / ProtoFormatter                 │
-│                   (Default: Tree, Json, None or Custom)                  │
-└────────────────────────────────────┬─────────────────────────────────────┘
-                                     │
-                                     ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                       ProtoSinkResolver / ProtoSink                      │
-│                     (Default: Logger, None or Custom)                    │
-└──────────────────────────────────────────────────────────────────────────┘
-```
+[Why `Microlens.Proto`?](#why-microlensproto) | [Quick Start](#quick-start) | [Quick Example](#quick-example) | [Features](#features) | [Extensible Architecture](#extensible-architecture) | [Performance Characteristics](#performance-characteristics) | [Comparison](#comparison) | [When Not To Use `Microlens.Proto`](#when-not-to-use-microlensproto) | [License](#license)
 
 ---
 
-## Features
+## Why `Microlens.Proto`?
 
-* **Schema-less Protobuf Decoding:** Manually parses wire formats (`Varints`, `Fixed32`, `Fixed64`, `Length-Delimited`) directly from binary data streams.
+Most `Protobuf` tooling assumes you already have:
 
-* **Deep Nested Inspection:** Heuristically detects and recursively decodes nested sub-messages up to a maximum depth of 64.
+* `.proto` files
+* generated C# classes
+* source-code access
 
-* **Intelligent String Heuristics:** Safely attempts `UTF-8` string decoding and automatically falling back to raw byte presentation if control characters are detected.
+In many real-world scenarios, you have none of those.
 
-* **End-to-End Interception:** Comprehensive support across the .NET network landscape:
-  * **HttpClient Delegating Handler:** Intercepts outbound `HTTP` payloads.
-  
-  * **ASP.NET Core Middleware:** Intercepts inbound `REST/Protobuf` traffic.
-  
-  * **gRPC Server Interceptor:** Audits inbound server-side `gRPC` requests and responses.
-  
-  * **gRPC Client Interceptor:** Audits outbound client-side `gRPC` requests and responses.
+Examples of typical use cases:
 
-* **Memory Efficient:** Engineered using modern performance types (`ReadOnlySequence<byte>`, `Span<T>`) and optimized buffer pooling via `Microsoft.IO.RecyclableMemoryStream`.
-
-* **Extensible Architecture:** Easily register custom visual formatters and custom log sinks to route payload telemetry where you need it.
-
-* **Configuration Options** You can control the capture and log behavior via below `ProtoOptions`:
-
-| Property | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `CaptureMode` | `ProtoCaptureMode` | `Both` | Dictates whether to inspect `Request`, `Response`, or `Both`. |
-| `LogScope` | `ProtoLogScope` | `Both` | Dictates whether to write logs for `Request`, `Response`, or `Both`. |
-| `LogLevel` | `LogLevel` | `Debug` | The standard Microsoft logging level to emit data under. |
-| `FormatterKey` | `ProtoFormatterKey` | `Default` | Selects structural visualization style (`Default`, `Json`, `None`, `Custom`). |
-| `SinkKey` | `ProtoSinkKey` | `Default` | Selects structural destination target (`Default`, `None`, `Custom`). |
-| `CustomFormatterName` | `string` | `""` | The lookup key name of your custom formatter registration if `FormatterKey` is set to `Custom`. |
-| `CustomSinkName` | `string` | `""` | The lookup key name of your custom log sink registration if `SinkKey` is set to `Custom`. |
-| `GlobalHandlerEnabled` | `bool` | `true` | Globally activates or deactivates the outbound `Http` payload handler layer. |
-| `GlobalMiddlewareEnabled` | `bool` | `true` | Globally activates or deactivates the inbound `ASP.NET Core` request pipeline middleware layer. |
-| `GlobalClientInterceptorEnabled` | `bool` | `true` | Globally activates or deactivates the outbound client-side `gRPC` message channel inspector. |
-| `GlobalServerInterceptorEnabled` | `bool` | `true` | Globally activates or deactivates the inbound server-side `gRPC` service method inspector. |
+* **Production Diagnostics**: Capture payload structures during incident investigation and troubleshooting.
+* **Debugging `gRPC` Requests**: inspect request and response messages without modifying service code.
+* **Auditing Binary Traffic**: Understand exactly what is crossing service boundaries.
+* **Reverse Engineering Legacy Systems**: Analyze `Protobuf` payloads when schemas are unavailable.
+* **API Discovery**: Understand third-party `Protobuf` protocols without source access.
+* **Understanding Service Behavior**: Analyze what a service is actually sending.
 
 ---
 
-## Getting Started
+## Quick Start
 
-### 1. Add NuGet Package
+### Installation
+
 ```bash
 dotnet add package Microlens.Proto
 ```
 
-### 2. Registration via Dependency Injection
-
-#### i. Add namespaces for service and middleware registration and startup options:
-
-```csharp
-using Microlens.Proto.Extensions;
-using Microlens.Proto.Shared;
-```
-
-#### ii. Register service:
-
-- With default options:
+### Register Services
 
 ```csharp
 builder.Services.AddMicrolensProto();
 ```
 
-- With customized options:
-
-```csharp
-builder.Services.AddMicrolensProto(options => {
-    options.FormatterKey = ProtoFormatterKey.Json;
-    options.SinkKey = ProtoSinkKey.Custom;
-    options.CustomSinkName = "Serilog";
-    options.CaptureMode = ProtoCaptureMode.Both;
-    options.LogScope = ProtoLogScope.Both;
-    options.LogLevel = LogLevel.Information;
-});
-```
-
-#### iii. Register middleware:
+### Register Middleware
 
 ```csharp
 app.UseMicrolensProto();
 ```
 
-### 3. Configure HTTP Payload Handling
+That's it.
 
-HTTP payloads are automatically intercepted and parsed by the `Microlens.Proto` delegating handler. To ensure your outgoing requests are properly captured, make sure to set the `Content-Type` header to `application/x-protobuf` or `application/protobuf` when sending Protobuf data.
+`HTTP` and `gRPC` payload inspection are automatically enabled.
+
+---
+
+## Quick Example
+
+Given a raw `Protobuf` payload:
 
 ```csharp
-var payload = request.Payload.ToByteArray();
-var content = new ByteArrayContent(payload);
-content.Headers.ContentType = new MediaTypeHeaderValue("application/x-protobuf");
+byte[] payload = ...;
 ```
 
-### 4. Opt-Out (Skip Microlens.Proto on Selective Endpoints)
+**`Microlens.Proto`** automatically parses raw `Protobuf` payloads and converts them into a readable tree structure.
 
-If specific endpoints or outbound calls process highly confidential information or require zero processing overhead, you can selectively bypass `Microlens.Proto` parsing.
-
-#### i. Skip HttpClient Payloads
-Explicitly tag your outgoing `HttpContent` using the `SkipProtoHandler()` utility extension:
-
-```csharp
-var content = new StringContent(protobufBytes, Encoding.UTF8, "application/x-protobuf");
-content.SkipProtoHandler();
-await _httpClient.PostAsync("/api/resource", content);
+```text
+├── Field 1 (Varint): 42
+├── Field 2 (LengthDelimited): Device-01
+├── Field 3 (LengthDelimited)
+│   ├── Field 1 (Varint): 123
+│   └── Field 2 (LengthDelimited): Active
+└── Field 4 (Fixed64): 987654321
 ```
 
-#### ii. Skip ASP.NET Core Middleware
-Decorate your `Controller` endpoints or Minimal API routes with the `[SkipProtoMiddleware]` attribute:
+* No `.proto` files required.
+* No schema definitions required.
+* No generated classes required.
+* No reflection required.
+* No custom parsers required.
 
-```csharp
-[SkipProtoMiddleware]
-[ApiController]
-[Route("[controller]/[action]")]
-public class ProtoController : ControllerBase {
-    [HttpPost("/sensitive-data")]
-	public IActionResult SecureEndpoint() {
-		// ...
-		return Ok();
-	}
-}
+---
+
+## Features
+
+**`Microlens.Proto`** is **NOT** intended to replace `Google.Protobuf` or `protobuf-net` for **serialization** and **deserialization** of known contracts.
+Instead, it complements them by providing visibility into raw `Protobuf` traffic.
+
+### Schema-less `Protobuf` Decoding
+
+Decode raw `Protobuf` wire data without `.proto` definitions.
+
+Supported wire types:
+
+* Varint
+* Fixed32
+* Fixed64
+* Length Delimited
+
+### Nested Message Discovery
+
+Automatically detects and recursively decodes embedded `Protobuf` messages.
+
+```text
+Field 5
+├── Field 1: HardwareRev
+└── Field 2: v3.2
 ```
 
-#### iii. Skip gRPC Client Interceptor
-Use the fluent `SkipProtoInterceptor()` extension method directly on your client call configurations:
+### HTTP Payload Inspection
 
-```csharp
-var options = new CallOptions().SkipProtoInterceptor();
-await _grpcClient.SayHelloAsync(request, options);
+Intercept **outbound** and **inbound** `Protobuf` traffic automatically.
+
+* HttpClient DelegatingHandler
+* ASP.NET Core Middleware
+
+### gRPC Message Inspection
+
+Capture and inspect `gRPC` messages transparently.
+
+* Client Interceptors
+* Server Interceptors
+
+### Human-Readable Output
+
+Convert binary payloads into readable tree structures.
+
+```text
+├── Field 1 (Varint): 999
+├── Field 2 (LengthDelimited): Connected
+└── Field 3 (Fixed32): 1098488218
 ```
 
-#### iv. Skip gRPC Server Interceptor
-Decorate your `Service` with the `[SkipProtoInterceptor]` attribute:
+### `JSON` Output
+
+Emit structured `JSON` for:
+
+* `Elasticsearch`
+* `Splunk`
+* `OpenSearch`
+* `DataDog`
+* Custom analytics pipelines
+
+### High Performance
+
+Built on:
+
+* `ReadOnlySequence<byte>`
+* `Span<T>`
+* `RecyclableMemoryStream`
+
+Designed for high-throughput services and production workloads.
+
+---
+
+## Extensible Architecture
+
+Register:
+
+* Custom formatters
+* Custom sinks
+* Custom telemetry pipelines
+
+### Formatters
+
+#### Default Formatter
+The default formatter generates a human-readable tree structure that can be written directly to your existing logging infrastructure.
+
+```text
+TimestampUtc = 2026-06-08T12:00:00Z
+Channel = Grpc
+Direction = Inbound
+Phase = Request
+Path = /EnvelopeService/Post
+
+Payload:
+
+├── Field 1 (LengthDelimited): HardwareRev
+├── Field 2 (LengthDelimited): v3.2
+├── Field 3 (Varint): 42
+└── Field 4 (Fixed64): 987654321
+```
+
+### Custom Formatters
+
+**`Microlens.Proto`** supports custom visualization formats.
+
+#### Example: Compact Formatter
 
 ```csharp
-[SkipProtoInterceptor]
-public class ProtoService : EnvelopeService.EnvelopeServiceBase {
-    public override async Task<EnvelopeReply> Post(EnvelopeRequest request, ServerCallContext context) {
-        // ...
-        return new EnvelopeReply();
+public sealed class CompactProtoFormatter : IProtoFormatter {
+    public ProtoFormatterKey Key => ProtoFormatterKey.Custom;
+
+    public string Name => "Compact";
+
+    public string Format(IReadOnlyList<ProtoNode> nodes) {
+        return $"Fields: {nodes.Count}";
     }
 }
 ```
 
+#### Register: Compact Formatter
+
+```csharp
+builder.Services.AddFormatter<CompactProtoFormatter>("Compact");
+
+builder.Services.AddMicrolensProto(options => {
+    options.FormatterKey = ProtoFormatterKey.Custom;
+    options.CustomFormatterName = "Compact";
+});
+```
+
+### Custom Sinks
+
+Send decoded payload information to any destination.
+
+#### Example: Serilog Sink
+
+```csharp
+public sealed class SerilogProtoSink : IProtoSink {
+    // Custom implementation
+}
+```
+
+#### Register: Serilog Sink
+
+```csharp
+builder.Services.AddSink<SerilogProtoSink>("Serilog");
+
+builder.Services.AddMicrolensProto(options =>
+{
+    options.SinkKey = ProtoSinkKey.Custom;
+    options.CustomSinkName = "Serilog";
+});
+```
+
+More Examples:
+
+* `Seq`
+* `Elasticsearch`
+* `Splunk`
+* `OpenSearch`
+* `Datadog`
+* `Application Insights`
+* Custom telemetry platforms
+
+and many more.
+
+### What Gets Captured and Logged?
+
+**`Microlens.Proto`** can inspect both requests and responses across multiple communication channels.
+
+| Channel                 | Request | Response |
+| ----------------------- | ------- | -------- |
+| HttpClient              | ✓       | ✓        |
+| ASP.NET Core Middleware | ✓       | ✓        |
+| gRPC Client             | ✓       | ✓        |
+| gRPC Server             | ✓       | ✓        |
+
+Capture and logging behavior can be configured through `ProtoOptions`.
+
+```csharp
+builder.Services.AddMicrolensProto(options =>
+{
+    options.CaptureMode = ProtoCaptureMode.Both;
+    options.LogScope = ProtoLogScope.Both;
+});
+```
+
 ---
 
-## Formatters
+## Performance Characteristics
 
-### 1. Default Textual Trees
+**`Microlens.Proto`** is designed for production environments and high-throughput workloads.
 
-The `DefaultProtoFormatter` converts raw binary wire streams into a neat human-readable tree diagram structure directly inside your logs:
+Key implementation details:
 
-```text
-Payload:
-	├── Field 1 (Varint): 42
-    ├── Field 2 (Fixed64): 1234567890
-    ├── Field 3 (LengthDelimited)
-    │   ├── Field 1 (Fixed64): 4630513161858373072
-    │   └── Field 2 (Fixed32): 1098488218
-    ├── Field 4 (LengthDelimited): System.ReadOnlyMemory<Byte>[6]
-    ├── Field 5 (LengthDelimited)
-    │   ├── Field 1 (LengthDelimited): HardwareRev
-    │   └── Field 2 (LengthDelimited): v3.2
-    ├── Field 5 (LengthDelimited)
-    │   ├── Field 1 (LengthDelimited): NetworkMode
-    │   └── Field 2 (LengthDelimited): Cellular
-    ├── Field 6 (Varint): 999
-    └── Field 7 (LengthDelimited): Last property is initialized
-```
+- `ReadOnlySequence<byte>` based parsing
+- `Span<T>` friendly processing
+- Streaming payload inspection
+- Buffer pooling through `RecyclableMemoryStream`
+- Recursive nested message decoding
+- Minimal allocations where possible
 
-### 2. JSON
+The library is optimized for **observability** and **diagnostics** while minimizing runtime overhead.
 
-Switch the configuration to `ProtoFormatterKey.Json` to automatically output fully serialized syntax nodes for consumption by analytical tools like `Elasticsearch` or `Splunk`.
+---
 
-```json
-Payload:
-	[
-	  {
-		"FieldNumber": 1,
-		"WireType": 0,
-		"RawData": "Kg==",
-		"Value": {
-		  "Type": 1,
-		  "Data": 42
-		},
-		"Children": []
-	  },
-	  {
-		"FieldNumber": 2,
-		"WireType": 1,
-		"RawData": "0gKWSQAAAAA=",
-		"Value": {
-		  "Type": 4,
-		  "Data": 1234567890
-		},
-		"Children": []
-	  },
-	  {
-		"FieldNumber": 3,
-		"WireType": 2,
-		"RawData": "CdDVVuwv40JAEVD8GHPXml7AHZqZeUE=",
-		"Value": {
-		  "Type": 32,
-		  "Data": [
-			{
-			  "FieldNumber": 1,
-			  "WireType": 1,
-			  "RawData": "0NVW7C/jQkA=",
-			  "Value": {
-				"Type": 4,
-				"Data": 4630513161858373000
-			  },
-			  "Children": []
-			},
-			{
-			  "FieldNumber": 2,
-			  "WireType": 5,
-			  "RawData": "mpl5QQ==",
-			  "Value": {
-				"Type": 2,
-				"Data": 1098488218
-			  },
-			  "Children": []
-			}
-		  ]
-		},
-		"Children": [
-		  {
-			"FieldNumber": 1,
-			"WireType": 1,
-			"RawData": "0NVW7C/jQkA=",
-			"Value": {
-			  "Type": 4,
-			  "Data": 4630513161858373000
-			},
-			"Children": []
-		  },
-		  {
-			"FieldNumber": 2,
-			"WireType": 5,
-			"RawData": "mpl5QQ==",
-			"Value": {
-			  "Type": 2,
-			  "Data": 1098488218
-			},
-			"Children": []
-		  }
-		]
-	  },
-	  {
-		"FieldNumber": 4,
-		"WireType": 2,
-		"RawData": "yAGUA/cD",
-		"Value": {
-		  "Type": 16,
-		  "Data": "yAGUA/cD"
-		},
-		"Children": []
-	  },
-	  {
-		"FieldNumber": 5,
-		"WireType": 2,
-		"RawData": "CgtIYXJkd2FyZVJldhIEdjMuMg==",
-		"Value": {
-		  "Type": 32,
-		  "Data": [
-			{
-			  "FieldNumber": 1,
-			  "WireType": 2,
-			  "RawData": "SGFyZHdhcmVSZXY=",
-			  "Value": {
-				"Type": 8,
-				"Data": "HardwareRev"
-			  },
-			  "Children": []
-			},
-			{
-			  "FieldNumber": 2,
-			  "WireType": 2,
-			  "RawData": "djMuMg==",
-			  "Value": {
-				"Type": 8,
-				"Data": "v3.2"
-			  },
-			  "Children": []
-			}
-		  ]
-		},
-		"Children": [
-		  {
-			"FieldNumber": 1,
-			"WireType": 2,
-			"RawData": "SGFyZHdhcmVSZXY=",
-			"Value": {
-			  "Type": 8,
-			  "Data": "HardwareRev"
-			},
-			"Children": []
-		  },
-		  {
-			"FieldNumber": 2,
-			"WireType": 2,
-			"RawData": "djMuMg==",
-			"Value": {
-			  "Type": 8,
-			  "Data": "v3.2"
-			},
-			"Children": []
-		  }
-		]
-	  },
-	  {
-		"FieldNumber": 5,
-		"WireType": 2,
-		"RawData": "CgtOZXR3b3JrTW9kZRIIQ2VsbHVsYXI=",
-		"Value": {
-		  "Type": 32,
-		  "Data": [
-			{
-			  "FieldNumber": 1,
-			  "WireType": 2,
-			  "RawData": "TmV0d29ya01vZGU=",
-			  "Value": {
-				"Type": 8,
-				"Data": "NetworkMode"
-			  },
-			  "Children": []
-			},
-			{
-			  "FieldNumber": 2,
-			  "WireType": 2,
-			  "RawData": "Q2VsbHVsYXI=",
-			  "Value": {
-				"Type": 8,
-				"Data": "Cellular"
-			  },
-			  "Children": []
-			}
-		  ]
-		},
-		"Children": [
-		  {
-			"FieldNumber": 1,
-			"WireType": 2,
-			"RawData": "TmV0d29ya01vZGU=",
-			"Value": {
-			  "Type": 8,
-			  "Data": "NetworkMode"
-			},
-			"Children": []
-		  },
-		  {
-			"FieldNumber": 2,
-			"WireType": 2,
-			"RawData": "Q2VsbHVsYXI=",
-			"Value": {
-			  "Type": 8,
-			  "Data": "Cellular"
-			},
-			"Children": []
-		  }
-		]
-	  },
-	  {
-		"FieldNumber": 6,
-		"WireType": 0,
-		"RawData": "5wc=",
-		"Value": {
-		  "Type": 1,
-		  "Data": 999
-		},
-		"Children": []
-	  },
-	  {
-		"FieldNumber": 7,
-		"WireType": 2,
-		"RawData": "TGFzdCBwcm9wZXJ0eSBpcyBpbml0aWFsaXplZA==",
-		"Value": {
-		  "Type": 8,
-		  "Data": "Last property is initialized"
-		},
-		"Children": []
-	  }
-	]
-```
+## Comparison
+
+| Capability | Microlens.Proto | Google.Protobuf / protobuf-net |
+|-------------|-------------|-------------|
+| Serialize known contracts | No | Yes |
+| Deserialize known contracts | No | Yes |
+| Decode unknown Protobuf payloads | Yes | Limited |
+| Works without `.proto` files | Yes | Limited |
+| Requires generated classes | No | Usually |
+| Schema-less inspection | Yes | Limited |
+| Nested message discovery | Yes | Limited |
+| `HTTP` payload interception | Yes | No |
+| `gRPC` payload interception | Yes | No |
+| Logging integration | Yes | No |
+| Custom sinks and formatters | Yes | No |
+
+**`Microlens.Proto`** focuses on **inspection**, **diagnostics**, **observability** and **traffic analysis** rather than contract-based serialization.
+
+---
+
+## When Not To Use `Microlens.Proto`
+
+`Microlens.Proto` is not intended for:
+
+* Generating `C#` classes from `.proto` files
+* Contract-based serialization
+* Contract-based deserialization
+* Replacing `Google.Protobuf`
+* Replacing `protobuf-net`
+
+If you already have schema definitions and generated types, use a traditional `Protobuf` library.
+
+---
+
+## License
+
+Licensed under the **Apache License 2.0**.
+
+See the [LICENSE](LICENSE) file for details.
 
 ---
