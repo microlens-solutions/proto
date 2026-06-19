@@ -2,11 +2,11 @@
 
 Decode and inspect `Protocol Buffer (Protobuf)` payloads without `.proto` files, generated classes or schema definitions.
 
-**`Microlens.Proto`** is a schema-less `Protobuf` inspection toolkit for .NET that automatically **intercepts**, **decodes**, **visualizes** and **logs** `Protobuf` traffic across `HTTP` and `gRPC` boundaries.
+**`Microlens.Proto`** is a schemaless `Protobuf` inspection toolkit for .NET that automatically **intercepts**, **decodes**, **visualizes** and **logs** `Protobuf` traffic across `HTTP` and `gRPC` boundaries.
 
 Unlike traditional `Protobuf` libraries that require compile-time contracts, **`Microlens.Proto`** works directly against raw wire-format payloads, making it useful for **diagnostics**, **auditing**, **reverse engineering** and **production troubleshooting**.
 
-[Why `Microlens.Proto`?](#why-microlensproto) | [Quick Start](#quick-start) | [Quick Example](#quick-example) | [Features](#features) | [Extensible Architecture](#extensible-architecture) | [Performance Characteristics](#performance-characteristics) | [Comparison](#comparison) | [When Not To Use `Microlens.Proto`](#when-not-to-use-microlensproto) | [License](#license)
+[Why `Microlens.Proto`?](#why-microlensproto) | [Quick Start](#quick-start) | [Quick Example](#quick-example) | [Features](#features) | [Extensible Architecture](#extensible-architecture) | [Performance Characteristics](#performance-characteristics) | [Comparison](#comparison) | [When Not To Use `Microlens.Proto`](#when-not-to-use-microlensproto) | [Articles](#articles) | [License](#license)
 
 ---
 
@@ -89,7 +89,7 @@ byte[] payload = ...;
 **`Microlens.Proto`** is **NOT** intended to replace `Google.Protobuf` or `protobuf-net` for **serialization** and **deserialization** of known contracts.
 Instead, it complements them by providing visibility into raw `Protobuf` traffic.
 
-### Schema-less `Protobuf` Decoding
+### Schemaless `Protobuf` Decoding
 
 Decode raw `Protobuf` wire data without `.proto` definitions.
 
@@ -291,19 +291,20 @@ The library is optimized for **observability** and **diagnostics** while minimiz
 
 ## Comparison
 
-| Capability | Microlens.Proto | Google.Protobuf / protobuf-net |
+| Capability | `Microlens.Proto` | Traditional `Protobuf` Libraries |
 |-------------|-------------|-------------|
-| Serialize known contracts | No | Yes |
-| Deserialize known contracts | No | Yes |
-| Decode unknown Protobuf payloads | Yes | Limited |
-| Works without `.proto` files | Yes | Limited |
-| Requires generated classes | No | Usually |
-| Schema-less inspection | Yes | Limited |
+| Serialize known contracts | Yes | Yes |
+| Deserialize known contracts | Yes | Yes |
+| Schemaless inspection | Yes | Limited |
 | Nested message discovery | Yes | Limited |
+| Works without `.proto` files | Yes | No |
+| Works without generated classes | Yes | No |
+| Decode unknown `Protobuf` payloads | Yes | No |
 | `HTTP` payload interception | Yes | No |
 | `gRPC` payload interception | Yes | No |
 | Logging integration | Yes | No |
-| Custom sinks and formatters | Yes | No |
+| Extensible formatters | Yes | No |
+| Extensible sinks | Yes | No |
 
 **`Microlens.Proto`** focuses on **inspection**, **diagnostics**, **observability** and **traffic analysis** rather than contract-based serialization.
 
@@ -320,6 +321,12 @@ The library is optimized for **observability** and **diagnostics** while minimiz
 * Replacing `protobuf-net`
 
 If you already have schema definitions and generated types, use a traditional `Protobuf` library.
+
+---
+
+## Articles
+
+* [Schemaless Protocol Buffers (Protobuf) Decoder & Inspector — Part 1](https://medium.com/@mansoor.afzal/schemaless-protocol-buffers-protobuf-decoder-inspector-part-1-3d265c671e35)
 
 ---
 
