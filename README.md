@@ -6,7 +6,15 @@ Decode and inspect `Protocol Buffer (Protobuf)` payloads without `.proto` files,
 
 Unlike traditional `Protobuf` libraries that require compile-time contracts, **`Microlens.Proto`** works directly against raw wire-format payloads, making it useful for **diagnostics**, **auditing**, **reverse engineering** and **production troubleshooting**.
 
-[Why `Microlens.Proto`?](#why-microlensproto) | [Quick Start](#quick-start) | [Quick Example](#quick-example) | [Features](#features) | [Extensible Architecture](#extensible-architecture) | [Performance Characteristics](#performance-characteristics) | [Comparison](#comparison) | [When Not To Use `Microlens.Proto`](#when-not-to-use-microlensproto) | [Articles](#articles) | [License](#license)
+[What's New](#whats-new) | [Why `Microlens.Proto`?](#why-microlensproto) | [Quick Start](#quick-start) | [Quick Example](#quick-example) | [Features](#features) | [Extensible Architecture](#extensible-architecture) | [Performance Characteristics](#performance-characteristics) | [Comparison](#comparison) | [When Not To Use `Microlens.Proto`](#when-not-to-use-microlensproto) | [Articles](#articles) | [License](#license)
+
+---
+
+## What's New
+
+* Full `gRPC` lifecycle coverage: In addition to `unary`, `server-streaming`, `client-streaming` and `bidirectional-streaming` calls are now intercepted and traced message-by-message.
+* Fixed: The `gRPC` client interceptor did not tag Channel/Path on its traces.
+* Fixed: The `gRPC` client interceptor's unary response tracing was a silent no-op — response payloads were never logged. Upgrading surfaces new log volume on response paths that were previously silent.
 
 ---
 
@@ -23,7 +31,7 @@ In many real-world scenarios, you have none of those.
 Examples of typical use cases:
 
 * **Production Diagnostics**: Capture payload structures during incident investigation and troubleshooting.
-* **Debugging `gRPC` Requests**: inspect request and response messages without modifying service code.
+* **Debugging `gRPC` Requests**: inspect request and response messages — unary and / or streamed — without modifying service code.
 * **Auditing Binary Traffic**: Understand exactly what is crossing service boundaries.
 * **Reverse Engineering Legacy Systems**: Analyze `Protobuf` payloads when schemas are unavailable.
 * **API Discovery**: Understand third-party `Protobuf` protocols without source access.
@@ -119,10 +127,19 @@ Intercept **outbound** and **inbound** `Protobuf` traffic automatically.
 
 ### gRPC Message Inspection
 
-Capture and inspect `gRPC` messages transparently.
+Capture and inspect `gRPC` messages transparently, across all four call shapes:
+
+* Unary
+* Server Streaming
+* Client Streaming
+* Bidirectional (Duplex) Streaming
+
+Enabled through:
 
 * Client Interceptors
 * Server Interceptors
+
+Streamed calls are inspected message-by-message as they are read or written, not buffered in full before tracing.
 
 ### Human-Readable Output
 
@@ -259,6 +276,8 @@ and many more.
 | ASP.NET Core Middleware | ✓       | ✓        |
 | gRPC Client             | ✓       | ✓        |
 | gRPC Server             | ✓       | ✓        |
+
+The `gRPC Client`/`gRPC Server` rows apply uniformly across unary, server-streaming, client-streaming and bidirectional-streaming calls.
 
 Capture and logging behavior can be configured through `ProtoOptions`.
 
