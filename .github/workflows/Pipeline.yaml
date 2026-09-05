@@ -46,7 +46,7 @@ jobs:
 
     - name: 📦 Pack Library
       run: |
-        dotnet pack Microlens.Proto/Microlens.Proto.csproj --configuration Release --output ./dist -p:PackageVersion=${{ steps.get_version.outputs.VERSION }}
+        dotnet pack Microlens.Proto/Microlens.Proto.csproj --configuration Release --output ./dist -p:PackageVersion=${{ steps.get_version.outputs.VERSION }} -p:PackageReleaseNotes="Compiled binary drop for version tag: ${{ github.ref_name }} (Commit: ${{ github.sha }})"
 
     - name: 🚚 Release to GitHub
       if: startsWith(github.ref, 'refs/tags/v')
