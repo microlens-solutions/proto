@@ -16,7 +16,7 @@
 		<PackageProjectUrl>https://github.com/microlens-solutions/proto</PackageProjectUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageTags>protocol-buffers;protobuf;grpc;unary;aspnetcore;middleware;delegating-handler;schema-less;diagnostic;</PackageTags>
+		<PackageTags>protocol-buffers;protobuf;grpc;unary;server-streaming;client-streaming;bidirectional-streaming;aspnetcore;middleware;delegating-handler;schema-less;diagnostic;</PackageTags>
 		
 	</PropertyGroup>
 
