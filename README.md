@@ -12,7 +12,7 @@ Unlike traditional `Protobuf` libraries that require compile-time contracts, **`
 
 ## What's New
 
-* Full `gRPC` lifecycle coverage: In addition to `unary`, `server-streaming`, `client-streaming` and `bidirectional-streaming` calls are now intercepted and traced message-by-message.
+* Full `gRPC` lifecycle coverage: In addition to `unary`, `server-streaming`, `client-streaming` and `duplex-streaming` calls are now intercepted and traced message-by-message.
 * Fixed: The `gRPC` client interceptor did not tag Channel/Path on its traces.
 * Fixed: The `gRPC` client interceptor's unary response tracing was a silent no-op — response payloads were never logged. Upgrading surfaces new log volume on response paths that were previously silent.
 
@@ -277,7 +277,7 @@ and many more.
 | gRPC Client             | ✓       | ✓        |
 | gRPC Server             | ✓       | ✓        |
 
-The `gRPC Client`/`gRPC Server` rows apply uniformly across unary, server-streaming, client-streaming and bidirectional-streaming calls.
+The `gRPC Client`/`gRPC Server` rows apply uniformly across `unary`, `server-streaming`, `client-streaming` and `duplex-streaming` calls.
 
 Capture and logging behavior can be configured through `ProtoOptions`.
 
