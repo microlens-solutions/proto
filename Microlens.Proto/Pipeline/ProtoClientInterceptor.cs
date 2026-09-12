@@ -14,17 +14,14 @@ namespace Microlens.Proto.Pipeline;
 internal sealed class ProtoClientInterceptor : Interceptor {
     private readonly ProtoOptions _options;
 
-    private readonly IProtoContext _context;
-
     private readonly IProtoInspector _inspector;
 
     private readonly IProtoFormatter _formatter;
 
     private readonly IProtoSink _sink;
 
-    internal ProtoClientInterceptor(IOptions<ProtoOptions> options, IProtoContext context, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink) {
+    internal ProtoClientInterceptor(IOptions<ProtoOptions> options, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink) {
         _options = options.Value;
-        _context = context;
         _inspector = inspector;
         _formatter = formatter.Get(_options.CustomFormatterName);
         _sink = sink.Get(_options.CustomSinkName);
@@ -37,22 +34,21 @@ internal sealed class ProtoClientInterceptor : Interceptor {
             return continuation(request, context);
         }
 
-        _context.Channel = ProtoChannelType.Grpc.ToString();
-        _context.Path = context.Method.FullName;
+        var scope = Helpers.BuildGrpcScope(context.Method.FullName);
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Request)) {
-            _context.Direction = ProtoDirectionType.Outbound.ToString();
-            _context.Phase = ProtoPhaseType.Request.ToString();
-            _ = TraceMessage(request, _options.LogScope.HasFlag(ProtoLogScope.Request)).ConfigureAwait(false);
+            scope.Direction = ProtoDirectionType.Outbound.ToString();
+            scope.Phase = ProtoPhaseType.Request.ToString();
+            _ = TraceMessage(scope, request, _options.LogScope.HasFlag(ProtoLogScope.Request)).ConfigureAwait(false);
         }
 
         var call = continuation(request, context);
         var response = call.ResponseAsync;
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Response)) {
-            _context.Direction = ProtoDirectionType.Inbound.ToString();
-            _context.Phase = ProtoPhaseType.Response.ToString();
-            _ = TraceResponseAsync(response, _options.LogScope.HasFlag(ProtoLogScope.Response));
+            scope.Direction = ProtoDirectionType.Inbound.ToString();
+            scope.Phase = ProtoPhaseType.Response.ToString();
+            _ = TraceResponseAsync(scope, response, _options.LogScope.HasFlag(ProtoLogScope.Response));
         }
 
         return new AsyncUnaryCall<TResponse>(response, call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
@@ -65,20 +61,19 @@ internal sealed class ProtoClientInterceptor : Interceptor {
             return continuation(request, context);
         }
 
-        _context.Channel = ProtoChannelType.Grpc.ToString();
-        _context.Path = context.Method.FullName;
+        var scope = Helpers.BuildGrpcScope(context.Method.FullName);
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Request)) {
-            _context.Direction = ProtoDirectionType.Outbound.ToString();
-            _context.Phase = ProtoPhaseType.Request.ToString();
-            _ = TraceMessage(request, _options.LogScope.HasFlag(ProtoLogScope.Request)).ConfigureAwait(false);
+            scope.Direction = ProtoDirectionType.Outbound.ToString();
+            scope.Phase = ProtoPhaseType.Request.ToString();
+            _ = TraceMessage(scope, request, _options.LogScope.HasFlag(ProtoLogScope.Request)).ConfigureAwait(false);
         }
 
         var call = continuation(request, context);
         IAsyncStreamReader<TResponse> responseStream = call.ResponseStream;
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Response)) {
-            var tracer = CreateStreamTracer<TResponse>(_context.Channel, _context.Path, ProtoDirectionType.Inbound, ProtoPhaseType.Response, _options.LogScope.HasFlag(ProtoLogScope.Response));
+            var tracer = CreateStreamTracer<TResponse>(scope.Channel, scope.Path, ProtoDirectionType.Inbound, ProtoPhaseType.Response, _options.LogScope.HasFlag(ProtoLogScope.Response));
             responseStream = new ProtoStreamReader<TResponse>(responseStream, tracer);
         }
 
@@ -92,21 +87,20 @@ internal sealed class ProtoClientInterceptor : Interceptor {
             return continuation(context);
         }
 
-        _context.Channel = ProtoChannelType.Grpc.ToString();
-        _context.Path = context.Method.FullName;
+        var scope = Helpers.BuildGrpcScope(context.Method.FullName);
 
         var call = continuation(context);
         IClientStreamWriter<TRequest> requestStream = call.RequestStream;
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Request)) {
-            var tracer = CreateStreamTracer<TRequest>(_context.Channel, _context.Path, ProtoDirectionType.Outbound, ProtoPhaseType.Request, _options.LogScope.HasFlag(ProtoLogScope.Request));
+            var tracer = CreateStreamTracer<TRequest>(scope.Channel, scope.Path, ProtoDirectionType.Outbound, ProtoPhaseType.Request, _options.LogScope.HasFlag(ProtoLogScope.Request));
             requestStream = new ProtoClientStreamWriter<TRequest>(requestStream, tracer);
         }
 
         var response = call.ResponseAsync;
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Response)) {
-            _ = TraceResponseAsync(response, _options.LogScope.HasFlag(ProtoLogScope.Response));
+            _ = TraceResponseAsync(scope, response, _options.LogScope.HasFlag(ProtoLogScope.Response));
         }
 
         return new AsyncClientStreamingCall<TRequest, TResponse>(requestStream, response, call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
@@ -119,45 +113,44 @@ internal sealed class ProtoClientInterceptor : Interceptor {
             return continuation(context);
         }
 
-        _context.Channel = ProtoChannelType.Grpc.ToString();
-        _context.Path = context.Method.FullName;
+        var scope = Helpers.BuildGrpcScope(context.Method.FullName);
 
         var call = continuation(context);
         IClientStreamWriter<TRequest> requestStream = call.RequestStream;
         IAsyncStreamReader<TResponse> responseStream = call.ResponseStream;
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Request)) {
-            var requestTracer = CreateStreamTracer<TRequest>(_context.Channel, _context.Path, ProtoDirectionType.Outbound, ProtoPhaseType.Request, _options.LogScope.HasFlag(ProtoLogScope.Request));
+            var requestTracer = CreateStreamTracer<TRequest>(scope.Channel, scope.Path, ProtoDirectionType.Outbound, ProtoPhaseType.Request, _options.LogScope.HasFlag(ProtoLogScope.Request));
             requestStream = new ProtoClientStreamWriter<TRequest>(requestStream, requestTracer);
         }
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Response)) {
-            var responseTracer = CreateStreamTracer<TResponse>(_context.Channel, _context.Path, ProtoDirectionType.Inbound, ProtoPhaseType.Response, _options.LogScope.HasFlag(ProtoLogScope.Response));
+            var responseTracer = CreateStreamTracer<TResponse>(scope.Channel, scope.Path, ProtoDirectionType.Inbound, ProtoPhaseType.Response, _options.LogScope.HasFlag(ProtoLogScope.Response));
             responseStream = new ProtoStreamReader<TResponse>(responseStream, responseTracer);
         }
 
         return new AsyncDuplexStreamingCall<TRequest, TResponse>(requestStream, responseStream, call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
     }
 
-    private async Task TraceMessage<TMessage>(TMessage target, bool log) where TMessage : class {
+    private async Task TraceMessage<TMessage>(IProtoScope scope, TMessage target, bool log) where TMessage : class {
         try {
             if (target is IMessage message) {
                 var nodes = _inspector.Inspect(message);
                 string description = _formatter.Format(nodes);
 
                 if (log) {
-                    _context.TimestampUtc = DateTime.UtcNow;
-                    await _sink.LogAsync(_options.LogLevel, _context, description, CancellationToken.None).ConfigureAwait(false);
+                    scope.TimestampUtc = DateTime.UtcNow;
+                    await _sink.LogAsync(_options.LogLevel, scope, description, CancellationToken.None).ConfigureAwait(false);
                 }
             }
         }
         catch { }
     }
 
-    private async Task TraceResponseAsync<TResponse>(Task<TResponse> responseTask, bool log) where TResponse : class {
+    private async Task TraceResponseAsync<TResponse>(IProtoScope scope, Task<TResponse> responseTask, bool log) where TResponse : class {
         try {
             TResponse response = await responseTask.ConfigureAwait(false);
-            await TraceMessage(response, log).ConfigureAwait(false);
+            await TraceMessage(scope, response, log).ConfigureAwait(false);
         }
         catch { }
     }
@@ -173,7 +166,7 @@ internal sealed class ProtoClientInterceptor : Interceptor {
                 string description = _formatter.Format(nodes);
 
                 if (log) {
-                    var messageContext = new ProtoContext {
+                    var messageContext = new ProtoScope {
                         TimestampUtc = DateTime.UtcNow,
                         Channel = channel,
                         Direction = direction.ToString(),

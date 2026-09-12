@@ -9,12 +9,12 @@ internal sealed class NoneProtoSink : IProtoSink {
 
     public string Name => "None";
 
-    public Task LogAsync(LogLevel level, IProtoContext context, string payload, CancellationToken cancellationToken) {
+    public Task LogAsync(LogLevel level, IProtoScope scope, string payload, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return Task.CompletedTask;
     }
 
-    public Task LogAsync(LogLevel level, IProtoContext context, string payload, Exception exception, CancellationToken cancellationToken) {
+    public Task LogAsync(LogLevel level, IProtoScope scope, string payload, Exception exception, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return Task.CompletedTask;
     }

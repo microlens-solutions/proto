@@ -1,6 +1,6 @@
 ﻿namespace Microlens.Proto.Models;
 
-internal sealed class ProtoContext() : IProtoContext {
+internal sealed class ProtoScope() : IProtoScope {
     public required DateTime TimestampUtc { get; set; }
 
     public required string Channel { get; set; }

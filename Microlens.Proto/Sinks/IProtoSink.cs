@@ -9,7 +9,7 @@ public interface IProtoSink {
 
     string Name { get; }
 
-    Task LogAsync(LogLevel level, IProtoContext context, string payload, CancellationToken cancellationToken);
+    Task LogAsync(LogLevel level, IProtoScope scope, string payload, CancellationToken cancellationToken);
 
-    Task LogAsync(LogLevel level, IProtoContext context, string payload, Exception exception, CancellationToken cancellationToken);
+    Task LogAsync(LogLevel level, IProtoScope scope, string payload, Exception exception, CancellationToken cancellationToken);
 }

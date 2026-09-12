@@ -12,17 +12,20 @@ namespace Microlens.Proto.Pipeline;
 
 internal sealed class ProtoMiddleware {
     private readonly RequestDelegate _next;
+
     private readonly ProtoOptions _options;
-    private readonly IProtoContext _context;
+
     private readonly IProtoInspector _inspector;
+
     private readonly IProtoFormatter _formatter;
+
     private readonly IProtoSink _sink;
+
     private static readonly RecyclableMemoryStreamManager _stream = new();
 
-    internal ProtoMiddleware(RequestDelegate next, IOptions<ProtoOptions> options, IProtoContext context, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink) {
+    internal ProtoMiddleware(RequestDelegate next, IOptions<ProtoOptions> options, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink) {
         _next = next;
         _options = options.Value;
-        _context = context;
         _inspector = inspector;
         _formatter = formatter.Get(_options.CustomFormatterName);
         _sink = sink.Get(_options.CustomSinkName);
@@ -44,24 +47,23 @@ internal sealed class ProtoMiddleware {
             return;
         }
 
-        _context.Channel = ProtoChannelType.Http.ToString();
-        _context.Path = context.Request.GetDisplayUrl();
+        var scope = Helpers.BuildHttpScope(context.Request.GetDisplayUrl());
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Request)) {
-            _context.Direction = ProtoDirectionType.Inbound.ToString();
-            _context.Phase = ProtoPhaseType.Request.ToString();
+            scope.Direction = ProtoDirectionType.Inbound.ToString();
+            scope.Phase = ProtoPhaseType.Request.ToString();
 
             context.Request.EnableBuffering();
             await using var request = _stream.GetStream();
             await context.Request.Body.CopyToAsync(request).ConfigureAwait(false);
 
             context.Request.Body.Position = 0;
-            await TraceMessage(request, _options.LogScope.HasFlag(ProtoLogScope.Request));
+            await TraceMessage(scope, request, _options.LogScope.HasFlag(ProtoLogScope.Request)).ConfigureAwait(false);
         }
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Response)) {
-            _context.Direction = ProtoDirectionType.Outbound.ToString();
-            _context.Phase = ProtoPhaseType.Response.ToString();
+            scope.Direction = ProtoDirectionType.Outbound.ToString();
+            scope.Phase = ProtoPhaseType.Response.ToString();
 
             var body = context.Response.Body;
             await using var response = _stream.GetStream();
@@ -69,7 +71,7 @@ internal sealed class ProtoMiddleware {
 
             try {
                 await _next(context).ConfigureAwait(false);
-                await TraceMessage(response, _options.LogScope.HasFlag(ProtoLogScope.Response)).ConfigureAwait(false);
+                await TraceMessage(scope, response, _options.LogScope.HasFlag(ProtoLogScope.Response)).ConfigureAwait(false);
 
                 if (response.Length > 0) {
                     response.Position = 0;
@@ -85,7 +87,7 @@ internal sealed class ProtoMiddleware {
         }
     }
 
-    private async Task TraceMessage(RecyclableMemoryStream recyclable, bool log) {
+    private async Task TraceMessage(ProtoScope scope, RecyclableMemoryStream recyclable, bool log) {
         try {
             if (recyclable.Length > 0) {
                 var sequence = recyclable.GetReadOnlySequence();
@@ -93,8 +95,8 @@ internal sealed class ProtoMiddleware {
                 string description = _formatter.Format(nodes);
 
                 if (log) {
-                    _context.TimestampUtc = DateTime.UtcNow;
-                    await _sink.LogAsync(_options.LogLevel, _context, description, CancellationToken.None).ConfigureAwait(false);
+                    scope.TimestampUtc = DateTime.UtcNow;
+                    await _sink.LogAsync(_options.LogLevel, scope, description, CancellationToken.None).ConfigureAwait(false);
                 }
             }
         }

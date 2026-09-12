@@ -1,6 +1,6 @@
 ﻿namespace Microlens.Proto.Models;
 
-public interface IProtoContext {
+public interface IProtoScope {
     public DateTime TimestampUtc { get; internal set; }
 
     public string Channel { get; internal set; }

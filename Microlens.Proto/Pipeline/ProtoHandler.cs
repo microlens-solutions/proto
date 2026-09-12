@@ -10,15 +10,17 @@ namespace Microlens.Proto.Pipeline;
 
 internal sealed class ProtoHandler : DelegatingHandler {
     private readonly ProtoOptions _options;
-    private readonly IProtoContext _context;
+
     private readonly IProtoInspector _inspector;
+
     private readonly IProtoFormatter _formatter;
+
     private readonly IProtoSink _sink;
+
     private static readonly RecyclableMemoryStreamManager _stream = new();
 
-    internal ProtoHandler(IOptions<ProtoOptions> options, IProtoContext context, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink) {
+    internal ProtoHandler(IOptions<ProtoOptions> options, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink) {
         _options = options.Value;
-        _context = context;
         _inspector = inspector;
         _formatter = formatter.Get(_options.CustomFormatterName);
         _sink = sink.Get(_options.CustomSinkName);
@@ -40,13 +42,12 @@ internal sealed class ProtoHandler : DelegatingHandler {
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
 
-        _context.Channel = ProtoChannelType.Http.ToString();
-        _context.Path = request.RequestUri?.AbsolutePath ?? string.Empty;
+        var scope = Helpers.BuildHttpScope(request.RequestUri?.AbsolutePath ?? string.Empty);
 
         if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Request)) {
-            _context.Direction = ProtoDirectionType.Outbound.ToString();
-            _context.Phase = ProtoPhaseType.Request.ToString();
-            await TraceMessage(request.Content, _options.LogScope.HasFlag(ProtoLogScope.Request), cancellationToken).ConfigureAwait(false);
+            scope.Direction = ProtoDirectionType.Outbound.ToString();
+            scope.Phase = ProtoPhaseType.Request.ToString();
+            await TraceMessage(scope, request.Content, _options.LogScope.HasFlag(ProtoLogScope.Request), cancellationToken).ConfigureAwait(false);
         }
 
         HttpResponseMessage response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -56,15 +57,15 @@ internal sealed class ProtoHandler : DelegatingHandler {
                 await response.Content.LoadIntoBufferAsync().ConfigureAwait(false);
             }
 
-            _context.Direction = ProtoDirectionType.Inbound.ToString();
-            _context.Phase = ProtoPhaseType.Response.ToString();
-            await TraceMessage(response.Content, _options.LogScope.HasFlag(ProtoLogScope.Response), cancellationToken).ConfigureAwait(false);
+            scope.Direction = ProtoDirectionType.Inbound.ToString();
+            scope.Phase = ProtoPhaseType.Response.ToString();
+            await TraceMessage(scope, response.Content, _options.LogScope.HasFlag(ProtoLogScope.Response), cancellationToken).ConfigureAwait(false);
         }
 
         return response;
     }
 
-    private async Task TraceMessage(HttpContent? content, bool log, CancellationToken cancellationToken) {
+    private async Task TraceMessage(ProtoScope scope, HttpContent? content, bool log, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
         try {
@@ -82,8 +83,8 @@ internal sealed class ProtoHandler : DelegatingHandler {
                 string description = _formatter.Format(nodes);
 
                 if (log) {
-                    _context.TimestampUtc = DateTime.UtcNow;
-                    await _sink.LogAsync(_options.LogLevel, _context, description, cancellationToken).ConfigureAwait(false);
+                    scope.TimestampUtc = DateTime.UtcNow;
+                    await _sink.LogAsync(_options.LogLevel, scope, description, cancellationToken).ConfigureAwait(false);
                 }
             }
         }

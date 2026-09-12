@@ -1,12 +1,35 @@
 ﻿using Grpc.Core;
 using Microlens.Proto.Attributes;
 using Microlens.Proto.Extensions;
+using Microlens.Proto.Models;
 using Microsoft.AspNetCore.Http;
 using System.Net.Http.Headers;
 
 namespace Microlens.Proto.Shared;
 
 internal static class Helpers {
+    internal static ProtoScope BuildScope(string channel, ProtoDirectionType direction, ProtoPhaseType phase, string? path) {
+        return new ProtoScope {
+            TimestampUtc = DateTime.UtcNow,
+            Channel = channel,
+            Direction = direction == ProtoDirectionType.None ? string.Empty : direction.ToString(),
+            Phase = phase == ProtoPhaseType.None ? string.Empty : phase.ToString(),
+            Path = path ?? string.Empty
+        };
+    }
+
+    internal static ProtoScope BuildScope(string channel, string? path) {
+        return BuildScope(channel, ProtoDirectionType.None, ProtoPhaseType.None, path);
+    }
+
+    internal static ProtoScope BuildHttpScope(string? path) {
+        return BuildScope(ProtoChannelType.Http.ToString(), ProtoDirectionType.None, ProtoPhaseType.None, path);
+    }
+
+    internal static ProtoScope BuildGrpcScope(string? path) {
+        return BuildScope(ProtoChannelType.Grpc.ToString(), path);
+    }
+
     internal static bool ShouldApplyHandler(HttpContentHeaders? headers) {
         return IsProtobuf(headers?.ContentType?.MediaType);
     }

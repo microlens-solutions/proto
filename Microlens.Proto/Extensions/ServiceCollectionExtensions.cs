@@ -22,7 +22,6 @@ public static class ServiceCollectionExtensions {
 
         _ = services.AddSingleton<IProtoDecoder, ProtoDecoder>();
         _ = services.AddSingleton<IProtoInspector, ProtoInspector>();
-        _ = services.AddTransient<IProtoContext, ProtoContext>();
 
         _ = services.AddSingleton<IProtoFormatterResolver, ProtoFormatterResolver>();
         _ = services.AddKeyedSingleton<IProtoFormatter, NoneProtoFormatter>("None");
@@ -35,7 +34,6 @@ public static class ServiceCollectionExtensions {
 
         _ = services.AddTransient(sp => new ProtoHandler(
             sp.GetRequiredService<IOptions<ProtoOptions>>(),
-            sp.GetRequiredService<IProtoContext>(),
             sp.GetRequiredService<IProtoInspector>(),
             sp.GetRequiredService<IProtoFormatterResolver>(),
             sp.GetRequiredService<IProtoSinkResolver>())
@@ -43,7 +41,6 @@ public static class ServiceCollectionExtensions {
 
         _ = services.AddTransient(sp => new ProtoClientInterceptor(
             sp.GetRequiredService<IOptions<ProtoOptions>>(),
-            sp.GetRequiredService<IProtoContext>(),
             sp.GetRequiredService<IProtoInspector>(),
             sp.GetRequiredService<IProtoFormatterResolver>(),
             sp.GetRequiredService<IProtoSinkResolver>())
@@ -51,7 +48,6 @@ public static class ServiceCollectionExtensions {
 
         _ = services.AddTransient(sp => new ProtoServerInterceptor(
             sp.GetRequiredService<IOptions<ProtoOptions>>(),
-            sp.GetRequiredService<IProtoContext>(),
             sp.GetRequiredService<IProtoInspector>(),
             sp.GetRequiredService<IProtoFormatterResolver>(),
             sp.GetRequiredService<IProtoSinkResolver>())
