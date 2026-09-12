@@ -25,10 +25,10 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<PackageReference Include="Google.Protobuf" Version="3.35.0" />
-		<PackageReference Include="Grpc.AspNetCore.Server" Version="2.80.0" />
-		<PackageReference Include="Grpc.Net.ClientFactory" Version="2.80.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
+		<PackageReference Include="Google.Protobuf" Version="3.36.1" />
+		<PackageReference Include="Grpc.AspNetCore.Server" Version="2.83.0" />
+		<PackageReference Include="Grpc.Net.ClientFactory" Version="2.83.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
 		<PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
 	</ItemGroup>
 
