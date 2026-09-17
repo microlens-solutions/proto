@@ -247,8 +247,7 @@ public sealed class SerilogProtoSink : IProtoSink {
 ```csharp
 builder.Services.AddSink<SerilogProtoSink>("Serilog");
 
-builder.Services.AddMicrolensProto(options =>
-{
+builder.Services.AddMicrolensProto(options => {
     options.SinkKey = ProtoSinkKey.Custom;
     options.CustomSinkName = "Serilog";
 });
@@ -282,8 +281,7 @@ The `gRPC Client`/`gRPC Server` rows apply uniformly across `unary`, `server-str
 Capture and logging behavior can be configured through `ProtoOptions`.
 
 ```csharp
-builder.Services.AddMicrolensProto(options =>
-{
+builder.Services.AddMicrolensProto(options => {
     options.CaptureMode = ProtoCaptureMode.Both;
     options.LogScope = ProtoLogScope.Both;
 });
