@@ -346,6 +346,7 @@ If you already have schema definitions and generated types, use a traditional `P
 ## Articles
 
 * [Schemaless Protocol Buffers (Protobuf) Decoder & Inspector — Part 1](https://medium.com/@mansoor.afzal/schemaless-protocol-buffers-protobuf-decoder-inspector-part-1-3d265c671e35)
+* [Schemaless Protocol Buffers (Protobuf) Decoder & Inspector — Part 2](https://medium.com/@mansoor.afzal/schemaless-protocol-buffers-protobuf-decoder-inspector-part-2-8d1d63bad109)
 
 ---
 
