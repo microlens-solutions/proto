@@ -247,8 +247,7 @@ public sealed class SerilogProtoSink : IProtoSink {
 ```csharp
 builder.Services.AddSink<SerilogProtoSink>("Serilog");
 
-builder.Services.AddMicrolensProto(options =>
-{
+builder.Services.AddMicrolensProto(options => {
     options.SinkKey = ProtoSinkKey.Custom;
     options.CustomSinkName = "Serilog";
 });
@@ -282,8 +281,7 @@ The `gRPC Client`/`gRPC Server` rows apply uniformly across `unary`, `server-str
 Capture and logging behavior can be configured through `ProtoOptions`.
 
 ```csharp
-builder.Services.AddMicrolensProto(options =>
-{
+builder.Services.AddMicrolensProto(options => {
     options.CaptureMode = ProtoCaptureMode.Both;
     options.LogScope = ProtoLogScope.Both;
 });
@@ -346,6 +344,7 @@ If you already have schema definitions and generated types, use a traditional `P
 ## Articles
 
 * [Schemaless Protocol Buffers (Protobuf) Decoder & Inspector — Part 1](https://medium.com/@mansoor.afzal/schemaless-protocol-buffers-protobuf-decoder-inspector-part-1-3d265c671e35)
+* [Schemaless Protocol Buffers (Protobuf) Decoder & Inspector — Part 2](https://medium.com/@mansoor.afzal/schemaless-protocol-buffers-protobuf-decoder-inspector-part-2-8d1d63bad109)
 
 ---
 
