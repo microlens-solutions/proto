@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/items/">
+    <File Path=".github/workflows/Pipeline.yaml" />
     <File Path=".gitignore" />
     <File Path="LICENSE" />
     <File Path="README.md" />
