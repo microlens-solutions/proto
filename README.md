@@ -269,12 +269,12 @@ and many more.
 
 **`Microlens.Proto`** can inspect both requests and responses across multiple communication channels.
 
-| Channel                 | Request | Response |
-| ----------------------- | ------- | -------- |
-| HttpClient              | ✓       | ✓        |
-| ASP.NET Core Middleware | ✓       | ✓        |
-| gRPC Client             | ✓       | ✓        |
-| gRPC Server             | ✓       | ✓        |
+| Channel | Request | Response |
+| :--- | :---: | :---: |
+| HttpClient | ✓ | ✓ |
+| ASP.NET Core Middleware | ✓ | ✓ |
+| gRPC Client | ✓ | ✓ |
+| gRPC Server | ✓ | ✓ |
 
 The `gRPC Client`/`gRPC Server` rows apply uniformly across `unary`, `server-streaming`, `client-streaming` and `duplex-streaming` calls.
 
@@ -309,7 +309,7 @@ The library is optimized for **observability** and **diagnostics** while minimiz
 ## Comparison
 
 | Capability | `Microlens.Proto` | Traditional `Protobuf` Libraries |
-|-------------|-------------|-------------|
+| :--- | :---: | :---: |
 | Serialize known contracts | Yes | Yes |
 | Deserialize known contracts | Yes | Yes |
 | Schemaless inspection | Yes | Limited |
@@ -351,7 +351,5 @@ If you already have schema definitions and generated types, use a traditional `P
 ## License
 
 Licensed under the **Apache License 2.0**.
-
-See the [LICENSE](LICENSE) file for details.
 
 ---
