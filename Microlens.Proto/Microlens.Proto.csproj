@@ -9,7 +9,10 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
-	
+
+		<RootNamespace>Microlens.Proto</RootNamespace>
+		<AssemblyName>Microlens.Proto</AssemblyName>
+
 		<PackageId>Microlens.Proto</PackageId>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/microlens-solutions/proto</PackageProjectUrl>
