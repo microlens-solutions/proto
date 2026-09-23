@@ -6,6 +6,7 @@
 		<Description>High-performance schemaless Protocol Buffers decoder and inspector for .NET. Intercepts, decodes and logs Protobuf traffic across HttpClient, ASP.NET Core and gRPC (unary and streaming) without .proto files or generated classes.</Description>
 	  
 		<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+		<OutputType>Library</OutputType>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
