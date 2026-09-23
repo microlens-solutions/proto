@@ -1,6 +1,10 @@
 ﻿using Microlens.Proto.Shared;
 using Microlens.Proto.Tracers;
 using Microsoft.IO;
+using System;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microlens.Proto.Pipeline;
 

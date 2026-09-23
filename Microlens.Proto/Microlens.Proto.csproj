@@ -7,9 +7,9 @@
 	  
 		<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
 		<OutputType>Library</OutputType>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
 
 		<RootNamespace>Microlens.Proto</RootNamespace>
 		<AssemblyName>Microlens.Proto</AssemblyName>

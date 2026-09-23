@@ -1,4 +1,6 @@
-﻿namespace Microlens.Proto.Shared;
+﻿using System;
+
+namespace Microlens.Proto.Shared;
 
 public static class Registry {
     internal const int MAXIMUM_NESTED_DEPTH = 64;

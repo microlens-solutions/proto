@@ -1,6 +1,7 @@
 ﻿using Google.Protobuf;
 using Microlens.Proto.Models;
 using System.Buffers;
+using System.Collections.Generic;
 
 namespace Microlens.Proto.Inspectors;
 

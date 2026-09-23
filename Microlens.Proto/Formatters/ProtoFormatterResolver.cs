@@ -1,5 +1,6 @@
 ﻿using Microlens.Proto.Shared;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace Microlens.Proto.Formatters;
 

@@ -1,4 +1,6 @@
-﻿namespace Microlens.Proto.Models;
+﻿using System;
+
+namespace Microlens.Proto.Models;
 
 public interface IProtoScope {
     public DateTime TimestampUtc { get; internal set; }

@@ -2,6 +2,7 @@
 using Microlens.Proto.Tracers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace Microlens.Proto.Extensions;
 

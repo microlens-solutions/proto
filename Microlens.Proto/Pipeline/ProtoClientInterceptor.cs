@@ -2,6 +2,8 @@
 using Grpc.Core.Interceptors;
 using Microlens.Proto.Shared;
 using Microlens.Proto.Tracers;
+using System;
+using System.Threading.Tasks;
 
 namespace Microlens.Proto.Pipeline;
 

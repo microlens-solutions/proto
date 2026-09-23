@@ -1,5 +1,7 @@
 ﻿using Microlens.Proto.Models;
 using Microlens.Proto.Shared;
+using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Microlens.Proto.Formatters;

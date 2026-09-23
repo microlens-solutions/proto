@@ -1,4 +1,6 @@
-﻿namespace Microlens.Proto.Models;
+﻿using System;
+
+namespace Microlens.Proto.Models;
 
 internal sealed class ProtoScope() : IProtoScope {
     public required DateTime TimestampUtc { get; set; }

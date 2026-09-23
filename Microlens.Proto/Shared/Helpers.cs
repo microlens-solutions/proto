@@ -4,6 +4,8 @@ using Microlens.Proto.Extensions;
 using Microlens.Proto.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
+using System;
+using System.Net.Http;
 
 namespace Microlens.Proto.Shared;
 

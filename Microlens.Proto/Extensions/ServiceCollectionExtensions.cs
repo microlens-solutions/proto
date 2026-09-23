@@ -10,6 +10,7 @@ using Microlens.Proto.Tracers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
+using System;
 
 namespace Microlens.Proto.Extensions;
 
