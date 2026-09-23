@@ -18,7 +18,10 @@
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>protobuf;protocol-buffers;grpc;grpc-web;grpc-interceptor;grpc-streaming;schemaless;schema-less;decoder;inspector;wire-format;diagnostics;debugging;logging;observability;reverse-engineering;aspnetcore;middleware;httpclient;delegating-handler</PackageTags>
+		<EnablePackageValidation>true</EnablePackageValidation>
+		<PackageValidationBaselineVersion>1.2.3</PackageValidationBaselineVersion>
 		<PackageProjectUrl>https://github.com/microlens-solutions/proto</PackageProjectUrl>
+		
 		<RepositoryUrl>https://github.com/microlens-solutions/proto</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
