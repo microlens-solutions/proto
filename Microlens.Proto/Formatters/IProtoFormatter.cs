@@ -4,7 +4,7 @@ using Microlens.Proto.Shared;
 namespace Microlens.Proto.Formatters;
 
 public interface IProtoFormatter {
-    ProtoFormatterKey Key { get; }
+    Registry.ProtoFormatterKey Key { get; }
 
     string Name { get; }
 

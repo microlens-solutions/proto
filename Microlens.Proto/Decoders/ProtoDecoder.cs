@@ -4,12 +4,11 @@ using Microlens.Proto.Shared;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
+using System.Text.Unicode;
 
 namespace Microlens.Proto.Decoders;
 
 internal sealed class ProtoDecoder : IProtoDecoder {
-    private static readonly UTF8Encoding _strict = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
-
     public IReadOnlyList<ProtoNode> Decode(ReadOnlySequence<byte> sequence) {
         _ = TryDecode(sequence, strict: false, depth: 0, out var nodes);
         return nodes;
@@ -22,7 +21,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
     private bool TryDecodeNested(ReadOnlyMemory<byte> data, int depth, out IReadOnlyList<ProtoNode> nodes) {
         nodes = [];
 
-        if (data.IsEmpty || depth >= Constants.MAXIMUM_NESTED_DEPTH) {
+        if (data.IsEmpty || depth >= Registry.MAXIMUM_NESTED_DEPTH) {
             return false;
         }
 
@@ -63,22 +62,22 @@ internal sealed class ProtoDecoder : IProtoDecoder {
             }
 
             ReadOnlyMemory<byte> rawData = GetMemoryFromSequence(rawSequence);
+            IReadOnlyList<ProtoNode> children = [];
 
-            if (wireType == WireFormat.WireType.LengthDelimited && TryDecodeUtf8Text(rawData, out string text)) {
-                value = new ProtoValue {
-                    Type = ProtoValueType.String,
-                    Data = text
-                };
-            }
-
-            IReadOnlyList<ProtoNode>? children = [];
-
-            if (wireType == WireFormat.WireType.LengthDelimited && TryDecodeNested(rawData, depth, out var nested)) {
-                children = nested;
-                value = new ProtoValue {
-                    Type = ProtoValueType.Nested,
-                    Data = nested
-                };
+            if (wireType == WireFormat.WireType.LengthDelimited) {
+                if (TryDecodeNested(rawData, depth, out var nested)) {
+                    children = nested;
+                    value = new ProtoValue {
+                        Type = Registry.ProtoValueType.Nested,
+                        Data = nested
+                    };
+                }
+                else if (TryDecodeUtf8Text(rawData.Span, out string text)) {
+                    value = new ProtoValue {
+                        Type = Registry.ProtoValueType.String,
+                        Data = text
+                    };
+                }
             }
 
             var node = new ProtoNode {
@@ -86,7 +85,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
                 WireType = wireType,
                 RawData = rawData,
                 Value = value ?? new ProtoValue {
-                    Type = ProtoValueType.Bytes,
+                    Type = Registry.ProtoValueType.Bytes,
                     Data = rawData
                 },
                 Children = children
@@ -135,7 +134,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
 
                     payload = reader.Sequence.Slice(start, reader.Position);
                     value = new ProtoValue {
-                        Type = ProtoValueType.Varint,
+                        Type = Registry.ProtoValueType.Varint,
                         Data = varint
                     };
 
@@ -155,7 +154,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
 
                     payload = reader.Sequence.Slice(reader.Position, 4);
                     value = new ProtoValue {
-                        Type = ProtoValueType.Fixed32,
+                        Type = Registry.ProtoValueType.Fixed32,
                         Data = BinaryPrimitives.ReadUInt32LittleEndian(buffer)
                     };
 
@@ -176,7 +175,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
 
                     payload = reader.Sequence.Slice(reader.Position, 8);
                     value = new ProtoValue {
-                        Type = ProtoValueType.Fixed64,
+                        Type = Registry.ProtoValueType.Fixed64,
                         Data = BinaryPrimitives.ReadUInt64LittleEndian(buffer)
                     };
 
@@ -203,23 +202,30 @@ internal sealed class ProtoDecoder : IProtoDecoder {
         }
     }
 
-    private static bool TryDecodeUtf8Text(ReadOnlyMemory<byte> data, out string text) {
+    private static bool TryDecodeUtf8Text(ReadOnlySpan<byte> data, out string text) {
         text = string.Empty;
 
-        try {
-            text = _strict.GetString(data.Span);
-        }
-        catch (DecoderFallbackException) {
+        if (!Utf8.IsValid(data)) {
             return false;
         }
 
-        foreach (char c in text) {
-            if (char.IsControl(c) && c is not '\r' and not '\n' and not '\t') {
-                text = string.Empty;
+        for (int i = 0; i < data.Length; i++) {
+            byte b = data[i];
+
+            if (b < 0x20) {
+                if (b is not 0x09 and not 0x0A and not 0x0D) {
+                    return false;
+                }
+            }
+            else if (b == 0x7F) {
+                return false;
+            }
+            else if (b == 0xC2 && i + 1 < data.Length && data[i + 1] <= 0x9F) {
                 return false;
             }
         }
 
+        text = Encoding.UTF8.GetString(data);
         return true;
     }
 

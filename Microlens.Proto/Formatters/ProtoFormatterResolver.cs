@@ -8,9 +8,9 @@ internal sealed class ProtoFormatterResolver(IServiceProvider provider) : IProto
 
     public IProtoFormatter Get(string key) {
         if (string.IsNullOrWhiteSpace(key)) {
-            key = ProtoFormatterKey.Default.ToString();
+            key = Registry.ProtoFormatterKey.Default.ToString();
         }
 
-        return _provider.GetKeyedService<IProtoFormatter>(key) ?? _provider.GetKeyedService<IProtoFormatter>(ProtoFormatterKey.Default.ToString())!;
+        return _provider.GetKeyedService<IProtoFormatter>(key) ?? _provider.GetKeyedService<IProtoFormatter>(Registry.ProtoFormatterKey.Default.ToString())!;
     }
 }

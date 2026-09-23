@@ -1,200 +1,110 @@
-﻿using Google.Protobuf;
-using Grpc.Core;
+﻿using Grpc.Core;
 using Grpc.Core.Interceptors;
-using Microlens.Proto.Extensions;
-using Microlens.Proto.Formatters;
-using Microlens.Proto.Inspectors;
-using Microlens.Proto.Models;
 using Microlens.Proto.Shared;
-using Microlens.Proto.Sinks;
-using Microsoft.Extensions.Options;
+using Microlens.Proto.Tracers;
 
 namespace Microlens.Proto.Pipeline;
 
 internal sealed class ProtoClientInterceptor : Interceptor {
-    private readonly ProtoOptions _options;
+    private readonly ProtoTracer _tracer;
 
-    private readonly IProtoInspector _inspector;
-
-    private readonly IProtoFormatter _formatter;
-
-    private readonly IProtoSink _sink;
-
-    internal ProtoClientInterceptor(IOptions<ProtoOptions> options, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink) {
-        _options = options.Value;
-        _inspector = inspector;
-        _formatter = formatter.Get(_options.CustomFormatterName);
-        _sink = sink.Get(_options.CustomSinkName);
+    internal ProtoClientInterceptor(ProtoTracer tracer) {
+        _tracer = tracer;
     }
 
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation) {
-        string methodName = "Unary";
-
-        if (!ShouldIntercept(context, methodName)) {
+        if (!ShouldIntercept(context)) {
             return continuation(request, context);
         }
 
-        var scope = Helpers.BuildGrpcScope(context.Method.FullName);
+        string path = context.Method.FullName;
 
-        if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Request)) {
-            scope.Direction = ProtoDirectionType.Outbound.ToString();
-            scope.Phase = ProtoPhaseType.Request.ToString();
-            _ = TraceMessage(scope, request, _options.LogScope.HasFlag(ProtoLogScope.Request)).ConfigureAwait(false);
+        if (_tracer.TraceRequest) {
+            _ = _tracer.TraceAsync(request, Registry.ProtoChannelType.Grpc, Registry.ProtoDirectionType.Outbound, Registry.ProtoPhaseType.Request, path);
         }
 
-        var call = continuation(request, context);
-        var response = call.ResponseAsync;
+        AsyncUnaryCall<TResponse> call = continuation(request, context);
 
-        if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Response)) {
-            scope.Direction = ProtoDirectionType.Inbound.ToString();
-            scope.Phase = ProtoPhaseType.Response.ToString();
-            _ = TraceResponseAsync(scope, response, _options.LogScope.HasFlag(ProtoLogScope.Response));
+        if (_tracer.TraceResponse) {
+            _ = TraceResponseAsync(call.ResponseAsync, path);
         }
 
-        return new AsyncUnaryCall<TResponse>(response, call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
+        return call;
     }
 
     public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation) {
-        string methodName = "ServerStreaming";
-
-        if (!ShouldIntercept(context, methodName)) {
+        if (!ShouldIntercept(context)) {
             return continuation(request, context);
         }
 
-        var scope = Helpers.BuildGrpcScope(context.Method.FullName);
+        string path = context.Method.FullName;
 
-        if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Request)) {
-            scope.Direction = ProtoDirectionType.Outbound.ToString();
-            scope.Phase = ProtoPhaseType.Request.ToString();
-            _ = TraceMessage(scope, request, _options.LogScope.HasFlag(ProtoLogScope.Request)).ConfigureAwait(false);
+        if (_tracer.TraceRequest) {
+            _ = _tracer.TraceAsync(request, Registry.ProtoChannelType.Grpc, Registry.ProtoDirectionType.Outbound, Registry.ProtoPhaseType.Request, path);
         }
 
-        var call = continuation(request, context);
-        IAsyncStreamReader<TResponse> responseStream = call.ResponseStream;
+        AsyncServerStreamingCall<TResponse> call = continuation(request, context);
 
-        if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Response)) {
-            var tracer = CreateStreamTracer<TResponse>(scope.Channel, scope.Path, ProtoDirectionType.Inbound, ProtoPhaseType.Response, _options.LogScope.HasFlag(ProtoLogScope.Response));
-            responseStream = new ProtoStreamReader<TResponse>(responseStream, tracer);
+        if (!_tracer.TraceResponse) {
+            return call;
         }
 
+        var responseStream = new ProtoStreamReader<TResponse>(call.ResponseStream, CreateTracer<TResponse>(Registry.ProtoDirectionType.Inbound, Registry.ProtoPhaseType.Response, path));
         return new AsyncServerStreamingCall<TResponse>(responseStream, call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
     }
 
     public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncClientStreamingCallContinuation<TRequest, TResponse> continuation) {
-        string methodName = "ClientStreaming";
-
-        if (!ShouldIntercept(context, methodName)) {
+        if (!ShouldIntercept(context)) {
             return continuation(context);
         }
 
-        var scope = Helpers.BuildGrpcScope(context.Method.FullName);
+        string path = context.Method.FullName;
+        AsyncClientStreamingCall<TRequest, TResponse> call = continuation(context);
 
-        var call = continuation(context);
-        IClientStreamWriter<TRequest> requestStream = call.RequestStream;
-
-        if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Request)) {
-            var tracer = CreateStreamTracer<TRequest>(scope.Channel, scope.Path, ProtoDirectionType.Outbound, ProtoPhaseType.Request, _options.LogScope.HasFlag(ProtoLogScope.Request));
-            requestStream = new ProtoClientStreamWriter<TRequest>(requestStream, tracer);
+        if (_tracer.TraceResponse) {
+            _ = TraceResponseAsync(call.ResponseAsync, path);
         }
 
-        var response = call.ResponseAsync;
-
-        if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Response)) {
-            _ = TraceResponseAsync(scope, response, _options.LogScope.HasFlag(ProtoLogScope.Response));
+        if (!_tracer.TraceRequest) {
+            return call;
         }
 
-        return new AsyncClientStreamingCall<TRequest, TResponse>(requestStream, response, call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
+        var requestStream = new ProtoClientStreamWriter<TRequest>(call.RequestStream, CreateTracer<TRequest>(Registry.ProtoDirectionType.Outbound, Registry.ProtoPhaseType.Request, path));
+        return new AsyncClientStreamingCall<TRequest, TResponse>(requestStream, call.ResponseAsync, call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
     }
 
     public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncDuplexStreamingCallContinuation<TRequest, TResponse> continuation) {
-        string methodName = "DuplexStreaming";
-
-        if (!ShouldIntercept(context, methodName)) {
+        if (!ShouldIntercept(context)) {
             return continuation(context);
         }
 
-        var scope = Helpers.BuildGrpcScope(context.Method.FullName);
+        string path = context.Method.FullName;
+        AsyncDuplexStreamingCall<TRequest, TResponse> call = continuation(context);
 
-        var call = continuation(context);
-        IClientStreamWriter<TRequest> requestStream = call.RequestStream;
-        IAsyncStreamReader<TResponse> responseStream = call.ResponseStream;
+        IClientStreamWriter<TRequest> requestStream = _tracer.TraceRequest
+            ? new ProtoClientStreamWriter<TRequest>(call.RequestStream, CreateTracer<TRequest>(Registry.ProtoDirectionType.Outbound, Registry.ProtoPhaseType.Request, path))
+            : call.RequestStream;
 
-        if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Request)) {
-            var requestTracer = CreateStreamTracer<TRequest>(scope.Channel, scope.Path, ProtoDirectionType.Outbound, ProtoPhaseType.Request, _options.LogScope.HasFlag(ProtoLogScope.Request));
-            requestStream = new ProtoClientStreamWriter<TRequest>(requestStream, requestTracer);
-        }
-
-        if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Response)) {
-            var responseTracer = CreateStreamTracer<TResponse>(scope.Channel, scope.Path, ProtoDirectionType.Inbound, ProtoPhaseType.Response, _options.LogScope.HasFlag(ProtoLogScope.Response));
-            responseStream = new ProtoStreamReader<TResponse>(responseStream, responseTracer);
-        }
+        IAsyncStreamReader<TResponse> responseStream = _tracer.TraceResponse
+            ? new ProtoStreamReader<TResponse>(call.ResponseStream, CreateTracer<TResponse>(Registry.ProtoDirectionType.Inbound, Registry.ProtoPhaseType.Response, path))
+            : call.ResponseStream;
 
         return new AsyncDuplexStreamingCall<TRequest, TResponse>(requestStream, responseStream, call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
     }
 
-    private async Task TraceMessage<TMessage>(IProtoScope scope, TMessage target, bool log) where TMessage : class {
-        try {
-            if (target is IMessage message) {
-                var nodes = _inspector.Inspect(message);
-                string description = _formatter.Format(nodes);
-
-                if (log) {
-                    scope.TimestampUtc = DateTime.UtcNow;
-                    await _sink.LogAsync(_options.LogLevel, scope, description, CancellationToken.None).ConfigureAwait(false);
-                }
-            }
-        }
-        catch { }
-    }
-
-    private async Task TraceResponseAsync<TResponse>(IProtoScope scope, Task<TResponse> responseTask, bool log) where TResponse : class {
+    private async Task TraceResponseAsync<TResponse>(Task<TResponse> responseTask, string path) {
         try {
             TResponse response = await responseTask.ConfigureAwait(false);
-            await TraceMessage(scope, response, log).ConfigureAwait(false);
+            await _tracer.TraceAsync(response, Registry.ProtoChannelType.Grpc, Registry.ProtoDirectionType.Inbound, Registry.ProtoPhaseType.Response, path).ConfigureAwait(false);
         }
         catch { }
     }
 
-    private Func<TMessage, Task> CreateStreamTracer<TMessage>(string channel, string? path, ProtoDirectionType direction, ProtoPhaseType phase, bool log) where TMessage : class {
-        return message => TraceStreamItem(message, channel, path, direction, phase, log);
+    private Func<TMessage, Task> CreateTracer<TMessage>(Registry.ProtoDirectionType direction, Registry.ProtoPhaseType phase, string path) where TMessage : class {
+        return message => _tracer.TraceAsync(message, Registry.ProtoChannelType.Grpc, direction, phase, path);
     }
 
-    private async Task TraceStreamItem<TMessage>(TMessage target, string channel, string? path, ProtoDirectionType direction, ProtoPhaseType phase, bool log) where TMessage : class {
-        try {
-            if (target is IMessage message) {
-                var nodes = _inspector.Inspect(message);
-                string description = _formatter.Format(nodes);
-
-                if (log) {
-                    var messageContext = new ProtoScope {
-                        TimestampUtc = DateTime.UtcNow,
-                        Channel = channel,
-                        Direction = direction.ToString(),
-                        Phase = phase.ToString(),
-                        Path = path
-                    };
-
-                    await _sink.LogAsync(_options.LogLevel, messageContext, description, CancellationToken.None).ConfigureAwait(false);
-                }
-            }
-        }
-        catch { }
-    }
-
-    private bool ShouldIntercept<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, string methodName) where TRequest : class where TResponse : class {
-        if (!_options.GlobalClientInterceptorEnabled) {
-            return false;
-        }
-
-        if (!Helpers.ShouldApplyInterceptor(methodName, context.Method.Type)) {
-            return false;
-        }
-
-        if (Helpers.ShouldSkipInterceptor(context.Options.Headers)) {
-            _ = context.Options.Headers.Remove(Constants.K_SKIP_PROTO_INTERCEPTOR);
-            return false;
-        }
-
-        return true;
+    private bool ShouldIntercept<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context) where TRequest : class where TResponse : class {
+        return !Helpers.TryConsumeSkipHeader(context.Options.Headers) && _tracer.Options.GlobalClientInterceptorEnabled && _tracer.IsActive;
     }
 }

@@ -5,9 +5,13 @@ using Microsoft.Extensions.Logging;
 namespace Microlens.Proto.Sinks;
 
 public interface IProtoSink {
-    ProtoSinkKey Key { get; }
+    Registry.ProtoSinkKey Key { get; }
 
     string Name { get; }
+
+    bool IsEnabled(LogLevel level) {
+        return level != LogLevel.None;
+    }
 
     Task LogAsync(LogLevel level, IProtoScope scope, string payload, CancellationToken cancellationToken);
 

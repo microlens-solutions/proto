@@ -8,9 +8,9 @@ internal sealed class ProtoSinkResolver(IServiceProvider provider) : IProtoSinkR
 
     public IProtoSink Get(string key) {
         if (string.IsNullOrWhiteSpace(key)) {
-            key = ProtoSinkKey.Default.ToString();
+            key = Registry.ProtoSinkKey.Default.ToString();
         }
 
-        return _provider.GetKeyedService<IProtoSink>(key) ?? _provider.GetKeyedService<IProtoSink>(ProtoSinkKey.Default.ToString())!;
+        return _provider.GetKeyedService<IProtoSink>(key) ?? _provider.GetKeyedService<IProtoSink>(Registry.ProtoSinkKey.Default.ToString())!;
     }
 }

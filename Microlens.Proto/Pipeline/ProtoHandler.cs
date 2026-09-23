@@ -1,93 +1,50 @@
-﻿using Microlens.Proto.Formatters;
-using Microlens.Proto.Inspectors;
-using Microlens.Proto.Models;
-using Microlens.Proto.Shared;
-using Microlens.Proto.Sinks;
-using Microsoft.Extensions.Options;
+﻿using Microlens.Proto.Shared;
+using Microlens.Proto.Tracers;
 using Microsoft.IO;
 
 namespace Microlens.Proto.Pipeline;
 
 internal sealed class ProtoHandler : DelegatingHandler {
-    private readonly ProtoOptions _options;
+    private readonly ProtoTracer _tracer;
 
-    private readonly IProtoInspector _inspector;
-
-    private readonly IProtoFormatter _formatter;
-
-    private readonly IProtoSink _sink;
-
-    private static readonly RecyclableMemoryStreamManager _stream = new();
-
-    internal ProtoHandler(IOptions<ProtoOptions> options, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink) {
-        _options = options.Value;
-        _inspector = inspector;
-        _formatter = formatter.Get(_options.CustomFormatterName);
-        _sink = sink.Get(_options.CustomSinkName);
+    internal ProtoHandler(ProtoTracer tracer) {
+        _tracer = tracer;
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (!_options.GlobalHandlerEnabled) {
+        if (Helpers.TryConsumeSkipHeader(request) || !_tracer.Options.GlobalHandlerEnabled || !_tracer.IsActive) {
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
 
-        if (!Helpers.ShouldApplyHandler(request.Content?.Headers)) {
-            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        }
-
-        if (Helpers.ShouldSkipHandler(request.Content?.Headers)) {
-            _ = (request.Content?.Headers.Remove(Constants.K_SKIP_PROTO_HANDLER));
-            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        }
-
-        var scope = Helpers.BuildHttpScope(request.RequestUri?.AbsolutePath ?? string.Empty);
-
-        if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Request)) {
-            scope.Direction = ProtoDirectionType.Outbound.ToString();
-            scope.Phase = ProtoPhaseType.Request.ToString();
-            await TraceMessage(scope, request.Content, _options.LogScope.HasFlag(ProtoLogScope.Request), cancellationToken).ConfigureAwait(false);
+        if (_tracer.TraceRequest && request.Content is { } content && Helpers.IsProtobuf(content.Headers.ContentType?.MediaType)) {
+            await TraceAsync(content, Registry.ProtoDirectionType.Outbound, Registry.ProtoPhaseType.Request, GetPath(request), cancellationToken).ConfigureAwait(false);
         }
 
         HttpResponseMessage response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        if (_options.CaptureMode.HasFlag(ProtoCaptureMode.Response)) {
-            if (response.Content != null) {
-                await response.Content.LoadIntoBufferAsync().ConfigureAwait(false);
-            }
-
-            scope.Direction = ProtoDirectionType.Inbound.ToString();
-            scope.Phase = ProtoPhaseType.Response.ToString();
-            await TraceMessage(scope, response.Content, _options.LogScope.HasFlag(ProtoLogScope.Response), cancellationToken).ConfigureAwait(false);
+        if (_tracer.TraceResponse && Helpers.IsProtobuf(response.Content.Headers.ContentType?.MediaType)) {
+            await TraceAsync(response.Content, Registry.ProtoDirectionType.Inbound, Registry.ProtoPhaseType.Response, GetPath(request), cancellationToken).ConfigureAwait(false);
         }
 
         return response;
     }
 
-    private async Task TraceMessage(ProtoScope scope, HttpContent? content, bool log, CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-
+    private async Task TraceAsync(HttpContent content, Registry.ProtoDirectionType direction, Registry.ProtoPhaseType phase, string path, CancellationToken cancellationToken) {
         try {
-            if (content != null) {
-                var stream = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-                using var recyclable = _stream.GetStream();
-                await stream.CopyToAsync(recyclable, cancellationToken).ConfigureAwait(false);
+#if NET9_0_OR_GREATER
+            await content.LoadIntoBufferAsync(cancellationToken).ConfigureAwait(false);
+#else
+            await content.LoadIntoBufferAsync().ConfigureAwait(false);
+#endif
 
-                if (stream.CanSeek) {
-                    stream.Position = 0;
-                }
-
-                var sequence = recyclable.GetReadOnlySequence();
-                var nodes = _inspector.Inspect(sequence);
-                string description = _formatter.Format(nodes);
-
-                if (log) {
-                    scope.TimestampUtc = DateTime.UtcNow;
-                    await _sink.LogAsync(_options.LogLevel, scope, description, cancellationToken).ConfigureAwait(false);
-                }
-            }
+            using RecyclableMemoryStream buffer = ProtoTracer.Streams.GetStream();
+            await content.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
+            await _tracer.TraceAsync(buffer.GetReadOnlySequence(), Registry.ProtoChannelType.Http, direction, phase, path, cancellationToken).ConfigureAwait(false);
         }
-        catch { }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested) { }
+    }
+
+    private static string GetPath(HttpRequestMessage request) {
+        return request.RequestUri is null ? string.Empty : request.RequestUri.IsAbsoluteUri ? request.RequestUri.AbsolutePath : request.RequestUri.OriginalString;
     }
 }

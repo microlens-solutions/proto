@@ -15,14 +15,14 @@ public static class CallOptionsExtensions {
         bool exists = false;
 
         foreach (var item in headers) {
-            if (item.Key.Equals(Constants.K_SKIP_PROTO_INTERCEPTOR, StringComparison.OrdinalIgnoreCase)) {
+            if (item.Key.Equals(Registry.K_SKIP_PROTO_INTERCEPTOR, StringComparison.OrdinalIgnoreCase)) {
                 exists = true;
                 break;
             }
         }
 
         if (!exists) {
-            headers.Add(Constants.K_SKIP_PROTO_INTERCEPTOR, "true");
+            headers.Add(Registry.K_SKIP_PROTO_INTERCEPTOR, "true");
         }
 
         return options;

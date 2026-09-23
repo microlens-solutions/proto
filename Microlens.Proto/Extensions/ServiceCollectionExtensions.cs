@@ -6,6 +6,7 @@ using Microlens.Proto.Inspectors;
 using Microlens.Proto.Models;
 using Microlens.Proto.Pipeline;
 using Microlens.Proto.Sinks;
+using Microlens.Proto.Tracers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
@@ -32,26 +33,16 @@ public static class ServiceCollectionExtensions {
         _ = services.AddKeyedSingleton<IProtoSink, NoneProtoSink>("None");
         _ = services.AddKeyedSingleton<IProtoSink, DefaultProtoSink>("Default");
 
-        _ = services.AddTransient(sp => new ProtoHandler(
+        _ = services.AddSingleton(sp => new ProtoTracer(
             sp.GetRequiredService<IOptions<ProtoOptions>>(),
             sp.GetRequiredService<IProtoInspector>(),
             sp.GetRequiredService<IProtoFormatterResolver>(),
             sp.GetRequiredService<IProtoSinkResolver>())
         );
 
-        _ = services.AddTransient(sp => new ProtoClientInterceptor(
-            sp.GetRequiredService<IOptions<ProtoOptions>>(),
-            sp.GetRequiredService<IProtoInspector>(),
-            sp.GetRequiredService<IProtoFormatterResolver>(),
-            sp.GetRequiredService<IProtoSinkResolver>())
-        );
-
-        _ = services.AddTransient(sp => new ProtoServerInterceptor(
-            sp.GetRequiredService<IOptions<ProtoOptions>>(),
-            sp.GetRequiredService<IProtoInspector>(),
-            sp.GetRequiredService<IProtoFormatterResolver>(),
-            sp.GetRequiredService<IProtoSinkResolver>())
-        );
+        _ = services.AddTransient(sp => new ProtoHandler(sp.GetRequiredService<ProtoTracer>()));
+        _ = services.AddTransient(sp => new ProtoClientInterceptor(sp.GetRequiredService<ProtoTracer>()));
+        _ = services.AddTransient(sp => new ProtoServerInterceptor(sp.GetRequiredService<ProtoTracer>()));
 
         _ = services.ConfigureAll<HttpClientFactoryOptions>(options => {
             options.HttpMessageHandlerBuilderActions.Add(builder => {

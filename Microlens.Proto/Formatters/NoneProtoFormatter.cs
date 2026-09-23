@@ -4,7 +4,7 @@ using Microlens.Proto.Shared;
 namespace Microlens.Proto.Formatters;
 
 internal sealed class NoneProtoFormatter : IProtoFormatter {
-    public ProtoFormatterKey Key => ProtoFormatterKey.None;
+    public Registry.ProtoFormatterKey Key => Registry.ProtoFormatterKey.None;
 
     public string Name => "None";
 

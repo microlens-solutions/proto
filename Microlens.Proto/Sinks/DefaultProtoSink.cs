@@ -2,32 +2,36 @@
 using Microlens.Proto.Shared;
 using Microsoft.Extensions.Logging;
 
-namespace Microlens.Proto.Sinks {
-    internal sealed class DefaultProtoSink(ILogger<DefaultProtoSink> logger) : IProtoSink {
-        private readonly ILogger _logger = logger;
+namespace Microlens.Proto.Sinks;
 
-        public ProtoSinkKey Key => ProtoSinkKey.Default;
+internal sealed class DefaultProtoSink(ILogger<DefaultProtoSink> logger) : IProtoSink {
+    private readonly ILogger _logger = logger;
 
-        public string Name => "Default";
+    public Registry.ProtoSinkKey Key => Registry.ProtoSinkKey.Default;
 
-        public Task LogAsync(LogLevel level, IProtoScope scope, string payload, CancellationToken cancellationToken) {
-            cancellationToken.ThrowIfCancellationRequested();
+    public string Name => "Default";
 
-            if (_logger.IsEnabled(level)) {
-                _logger.Log(level, Constants.DEFAULT_LOG_FORMAT, scope.TimestampUtc, scope.Channel, scope.Direction, scope.Phase, scope.Path, Environment.NewLine, Environment.NewLine, payload);
-            }
+    public bool IsEnabled(LogLevel level) {
+        return _logger.IsEnabled(level);
+    }
 
-            return Task.CompletedTask;
+    public Task LogAsync(LogLevel level, IProtoScope scope, string payload, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (_logger.IsEnabled(level)) {
+            _logger.Log(level, Registry.DEFAULT_LOG_FORMAT, scope.TimestampUtc, scope.Channel, scope.Direction, scope.Phase, scope.Path, payload);
         }
 
-        public Task LogAsync(LogLevel level, IProtoScope scope, string payload, Exception exception, CancellationToken cancellationToken) {
-            cancellationToken.ThrowIfCancellationRequested();
+        return Task.CompletedTask;
+    }
 
-            if (_logger.IsEnabled(level)) {
-                _logger.Log(level, exception, Constants.DEFAULT_LOG_FORMAT, scope.TimestampUtc, scope.Channel, scope.Direction, scope.Phase, scope.Path, Environment.NewLine, Environment.NewLine, payload);
-            }
+    public Task LogAsync(LogLevel level, IProtoScope scope, string payload, Exception exception, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
 
-            return Task.CompletedTask;
+        if (_logger.IsEnabled(level)) {
+            _logger.Log(level, exception, Registry.DEFAULT_LOG_FORMAT, scope.TimestampUtc, scope.Channel, scope.Direction, scope.Phase, scope.Path, payload);
         }
+
+        return Task.CompletedTask;
     }
 }
