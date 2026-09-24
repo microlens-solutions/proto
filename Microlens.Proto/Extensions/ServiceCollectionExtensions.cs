@@ -80,10 +80,16 @@ public static class ServiceCollectionExtensions {
     }
 
     public static IServiceCollection AddFormatter<TProtoFormatter>(this IServiceCollection services, string key) where TProtoFormatter : class, IProtoFormatter {
+        Guard.NotNull(services);
+        Guard.NotNullOrWhiteSpace(key);
+
         return services.AddKeyedSingleton<IProtoFormatter, TProtoFormatter>(key);
     }
 
     public static IServiceCollection AddSink<TProtoSink>(this IServiceCollection services, string key) where TProtoSink : class, IProtoSink {
+        Guard.NotNull(services);
+        Guard.NotNullOrWhiteSpace(key);
+
         return services.AddKeyedSingleton<IProtoSink, TProtoSink>(key);
     }
 

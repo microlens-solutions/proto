@@ -1,4 +1,5 @@
 using Google.Protobuf;
+using Microlens.Proto.Extensions;
 using Microlens.Proto.Formatters;
 using Microlens.Proto.Inspectors;
 using Microlens.Proto.Models;
@@ -31,6 +32,7 @@ internal sealed class ProtoTracer {
 
     private readonly bool _decode;
 
+    [Obsolete]
     internal ProtoTracer(IOptions<ProtoOptions> options, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink, ILogger? logger) {
         Options = options.Value;
 
@@ -42,20 +44,20 @@ internal sealed class ProtoTracer {
         _formatter = formatter.Get(Options.CustomFormatterName);
         _sink = sink.Get(Options.CustomSinkName);
         _level = Options.LogLevel;
-        _decode = _formatter.Key != Registry.ProtoFormatterKey.None;
+        _decode = _formatter.Key != ProtoRegistry.FormatterKind.None.Convert();
 
-        TraceRequest = Options.CaptureMode.HasFlag(Registry.ProtoCaptureMode.Request) && Options.LogScope.HasFlag(Registry.ProtoLogScope.Request);
-        TraceResponse = Options.CaptureMode.HasFlag(Registry.ProtoCaptureMode.Response) && Options.LogScope.HasFlag(Registry.ProtoLogScope.Response);
+        TraceRequest = Options.Intercepting.HasFlag(ProtoRegistry.InterceptingMode.Request) && Options.Logging.HasFlag(ProtoRegistry.LoggingMode.Request);
+        TraceResponse = Options.Intercepting.HasFlag(ProtoRegistry.InterceptingMode.Response) && Options.Logging.HasFlag(ProtoRegistry.LoggingMode.Response);
 
         if (logger is null) {
             return;
         }
 
-        if (Options.FormatterKey == Registry.ProtoFormatterKey.Custom && _formatter.Key != Registry.ProtoFormatterKey.Custom) {
+        if (Options.Formatter == ProtoRegistry.FormatterKind.Custom && _formatter.Key != ProtoRegistry.FormatterKind.Custom.Convert()) {
             _unresolved(logger, "formatter", Options.CustomFormatterName, _formatter.Name, null);
         }
 
-        if (Options.SinkKey == Registry.ProtoSinkKey.Custom && _sink.Key != Registry.ProtoSinkKey.Custom) {
+        if (Options.Sink == ProtoRegistry.SinkKind.Custom && _sink.Key != ProtoRegistry.SinkKind.Custom.Convert()) {
             _unresolved(logger, "sink", Options.CustomSinkName, _sink.Name, null);
         }
     }

@@ -1,6 +1,5 @@
-﻿using Grpc.Core;
+using Grpc.Core;
 using Microlens.Proto.Shared;
-using System;
 
 namespace Microlens.Proto.Extensions;
 
@@ -8,21 +7,12 @@ public static class CallOptionsExtensions {
     public static CallOptions SkipProtoInterceptor(this CallOptions options) {
         var headers = options.Headers;
 
-        if (headers == null) {
+        if (headers is null) {
             headers = [];
             options = options.WithHeaders(headers);
         }
 
-        bool exists = false;
-
-        foreach (var item in headers) {
-            if (item.Key.Equals(Registry.K_SKIP_PROTO_INTERCEPTOR, StringComparison.OrdinalIgnoreCase)) {
-                exists = true;
-                break;
-            }
-        }
-
-        if (!exists) {
+        if (!headers.Contains(Registry.K_SKIP_PROTO_INTERCEPTOR)) {
             headers.Add(Registry.K_SKIP_PROTO_INTERCEPTOR, "true");
         }
 

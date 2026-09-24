@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 namespace Microlens.Proto.Sinks;
 
 internal sealed class NoneProtoSink : IProtoSink {
+    [Obsolete]
     public Registry.ProtoSinkKey Key => Registry.ProtoSinkKey.None;
 
     public string Name => "None";

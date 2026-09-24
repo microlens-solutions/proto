@@ -126,7 +126,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
                     }
 
                     payload = reader.Sequence.Slice(start, reader.Position);
-                    value = ProtoValue.FromNumber(Registry.ProtoValueType.Varint, varint);
+                    value = ProtoValue.FromNumber(ProtoRegistry.ValueKind.Varint, varint);
                     return true;
                 }
 
@@ -142,7 +142,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
                     }
 
                     payload = reader.Sequence.Slice(reader.Position, 4);
-                    value = ProtoValue.FromNumber(Registry.ProtoValueType.Fixed32, BinaryPrimitives.ReadUInt32LittleEndian(buffer));
+                    value = ProtoValue.FromNumber(ProtoRegistry.ValueKind.Fixed32, BinaryPrimitives.ReadUInt32LittleEndian(buffer));
                     reader.Advance(4);
                     return true;
                 }
@@ -159,7 +159,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
                     }
 
                     payload = reader.Sequence.Slice(reader.Position, 8);
-                    value = ProtoValue.FromNumber(Registry.ProtoValueType.Fixed64, BinaryPrimitives.ReadUInt64LittleEndian(buffer));
+                    value = ProtoValue.FromNumber(ProtoRegistry.ValueKind.Fixed64, BinaryPrimitives.ReadUInt64LittleEndian(buffer));
                     reader.Advance(8);
                     return true;
                 }

@@ -3,7 +3,7 @@ using System;
 namespace Microlens.Proto.Shared;
 
 public static class ProtoRegistry {
-    public enum ProtoValueType {
+    public enum ValueKind {
         None = 0,
 
         Varint = 1,
@@ -19,7 +19,7 @@ public static class ProtoRegistry {
         Nested = 32
     }
 
-    public enum ProtoFormatterKey {
+    public enum FormatterKind {
         None = 0,
 
         Default = 1,
@@ -29,7 +29,7 @@ public static class ProtoRegistry {
         Custom = 4
     }
 
-    public enum ProtoSinkKey {
+    public enum SinkKind {
         None = 0,
 
         Default = 1,
@@ -38,7 +38,7 @@ public static class ProtoRegistry {
     }
 
     [Flags]
-    public enum ProtoCaptureMode {
+    public enum InterceptingMode {
         None = 0,
 
         Request = 1,
@@ -49,7 +49,7 @@ public static class ProtoRegistry {
     }
 
     [Flags]
-    public enum ProtoLogScope {
+    public enum LoggingMode {
         None = 0,
 
         Request = 1,

@@ -1,4 +1,4 @@
-﻿using Microlens.Proto.Shared;
+using Microlens.Proto.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 
@@ -9,9 +9,9 @@ internal sealed class ProtoFormatterResolver(IServiceProvider provider) : IProto
 
     public IProtoFormatter Get(string key) {
         if (string.IsNullOrWhiteSpace(key)) {
-            key = Registry.ProtoFormatterKey.Default.ToString();
+            key = ProtoRegistry.FormatterKind.Default.ToString();
         }
 
-        return _provider.GetKeyedService<IProtoFormatter>(key) ?? _provider.GetKeyedService<IProtoFormatter>(Registry.ProtoFormatterKey.Default.ToString())!;
+        return _provider.GetKeyedService<IProtoFormatter>(key) ?? _provider.GetKeyedService<IProtoFormatter>(ProtoRegistry.FormatterKind.Default.ToString())!;
     }
 }

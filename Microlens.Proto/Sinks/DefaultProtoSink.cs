@@ -10,6 +10,7 @@ namespace Microlens.Proto.Sinks;
 internal sealed class DefaultProtoSink(ILogger<DefaultProtoSink> logger) : IProtoSink {
     private readonly ILogger _logger = logger;
 
+    [Obsolete]
     public Registry.ProtoSinkKey Key => Registry.ProtoSinkKey.Default;
 
     public string Name => "Default";

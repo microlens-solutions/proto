@@ -1,38 +1,40 @@
+using Microlens.Proto.Extensions;
 using Microlens.Proto.Shared;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace Microlens.Proto.Models;
 
 public sealed class ProtoOptions {
-    private string _formatterName = string.Empty;
+    private string _formatter = string.Empty;
 
-    private string _sinkName = string.Empty;
+    private string _sink = string.Empty;
 
-    public Registry.ProtoFormatterKey FormatterKey { get; set; } = Registry.ProtoFormatterKey.Default;
+    public ProtoRegistry.FormatterKind Formatter { get; set; } = ProtoRegistry.FormatterKind.Default;
 
-    public Registry.ProtoSinkKey SinkKey { get; set; } = Registry.ProtoSinkKey.Default;
+    public ProtoRegistry.SinkKind Sink { get; set; } = ProtoRegistry.SinkKind.Default;
 
-    public Registry.ProtoCaptureMode CaptureMode { get; set; } = Registry.ProtoCaptureMode.Both;
+    public ProtoRegistry.InterceptingMode Intercepting { get; set; } = ProtoRegistry.InterceptingMode.Both;
 
-    public Registry.ProtoLogScope LogScope { get; set; } = Registry.ProtoLogScope.Both;
+    public ProtoRegistry.LoggingMode Logging { get; set; } = ProtoRegistry.LoggingMode.Both;
 
     public LogLevel LogLevel { get; set; } = LogLevel.Debug;
 
     public string CustomFormatterName {
         get {
-            return !string.IsNullOrWhiteSpace(_formatterName) && FormatterKey == Registry.ProtoFormatterKey.Custom ? _formatterName : FormatterKey.ToString();
+            return !string.IsNullOrWhiteSpace(_formatter) && Formatter == ProtoRegistry.FormatterKind.Custom ? _formatter : Formatter.ToString();
         }
         set {
-            _formatterName = value;
+            _formatter = value;
         }
     }
 
     public string CustomSinkName {
         get {
-            return !string.IsNullOrWhiteSpace(_sinkName) && SinkKey == Registry.ProtoSinkKey.Custom ? _sinkName : SinkKey.ToString();
+            return !string.IsNullOrWhiteSpace(_sink) && Sink == ProtoRegistry.SinkKind.Custom ? _sink : Sink.ToString();
         }
         set {
-            _sinkName = value;
+            _sink = value;
         }
     }
 
@@ -45,4 +47,56 @@ public sealed class ProtoOptions {
     public bool GlobalClientInterceptorEnabled { get; set; } = true;
 
     public bool GlobalServerInterceptorEnabled { get; set; } = true;
+
+    [Obsolete]
+    private Registry.ProtoFormatterKey _legacyFormatter = Registry.ProtoFormatterKey.Default;
+
+    [Obsolete("It will be removed in 3.0.0, use ProtoOptions.Formatter")]
+    public Registry.ProtoFormatterKey FormatterKey {
+        get {
+            return _legacyFormatter;
+        }
+        set {
+            _legacyFormatter = Formatter.Convert();
+        }
+    }
+
+    [Obsolete]
+    private Registry.ProtoSinkKey _legacySink = Registry.ProtoSinkKey.Default;
+
+    [Obsolete("It will be removed in 3.0.0, use ProtoOptions.Sink")]
+    public Registry.ProtoSinkKey SinkKey {
+        get {
+            return _legacySink;
+        }
+        set {
+            _legacySink = Sink.Convert();
+        }
+    }
+
+    [Obsolete]
+    private Registry.ProtoCaptureMode _legacyIntercepting = Registry.ProtoCaptureMode.Both;
+
+    [Obsolete("It will be removed in 3.0.0, use ProtoOptions.Intercepting")]
+    public Registry.ProtoCaptureMode CaptureMode {
+        get {
+            return _legacyIntercepting;
+        }
+        set {
+            _legacyIntercepting = Intercepting.Convert();
+        }
+    }
+
+    [Obsolete]
+    private Registry.ProtoLogScope _legacylogging = Registry.ProtoLogScope.Both;
+
+    [Obsolete("It will be removed in 3.0.0, use ProtoOptions.Logging")]
+    public Registry.ProtoLogScope LogScope {
+        get {
+            return _legacylogging;
+        }
+        set {
+            _legacylogging = Logging.Convert();
+        }
+    }
 }

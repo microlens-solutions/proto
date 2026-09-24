@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace Microlens.Proto.Attributes {
-    [AttributeUsage(AttributeTargets.Class)]
-    public sealed class SkipProtoInterceptorAttribute : Attribute { }
-}
+namespace Microlens.Proto.Attributes;
+
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class SkipProtoInterceptorAttribute : Attribute { }

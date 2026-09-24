@@ -7,6 +7,7 @@ using System.Text;
 namespace Microlens.Proto.Formatters;
 
 internal sealed class DefaultProtoFormatter : IProtoFormatter {
+    [Obsolete]
     public Registry.ProtoFormatterKey Key => Registry.ProtoFormatterKey.Default;
 
     public string Name => "Default";
@@ -29,7 +30,7 @@ internal sealed class DefaultProtoFormatter : IProtoFormatter {
 
             _ = builder.Append(indent).Append(last ? "└── " : "├── ").Append($"Field {node.FieldNumber} ({node.WireType})");
 
-            if (node.Value is { Type: not Registry.ProtoValueType.Nested } value) {
+            if (node.Value is { Value: not ProtoRegistry.ValueKind.Nested } value) {
                 _ = builder.Append(": ");
                 AppendValue(builder, value);
             }
@@ -48,18 +49,18 @@ internal sealed class DefaultProtoFormatter : IProtoFormatter {
             return;
         }
 
-        switch (value.Type) {
-            case Registry.ProtoValueType.Varint:
-            case Registry.ProtoValueType.Fixed32:
-            case Registry.ProtoValueType.Fixed64:
+        switch (value.Value) {
+            case ProtoRegistry.ValueKind.Varint:
+            case ProtoRegistry.ValueKind.Fixed32:
+            case ProtoRegistry.ValueKind.Fixed64:
                 _ = builder.Append(value.Number);
                 break;
 
-            case Registry.ProtoValueType.String:
+            case ProtoRegistry.ValueKind.String:
                 _ = builder.Append(value.Text);
                 break;
 
-            case Registry.ProtoValueType.Bytes:
+            case ProtoRegistry.ValueKind.Bytes:
                 AppendHex(builder, value.Bytes.Span);
                 break;
         }

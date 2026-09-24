@@ -1,3 +1,4 @@
+using Microlens.Proto.Extensions;
 using Microlens.Proto.Shared;
 using System;
 using System.Collections.Generic;
@@ -20,7 +21,17 @@ public sealed record ProtoValue {
 
     private int _materialized;
 
-    public required Registry.ProtoValueType Type { get; init; }
+    public ProtoRegistry.ValueKind Value { get; init; }
+
+    [Obsolete("It will be removed in 3.0.0, use ProtoRegistry.ValueKind")]
+    public Registry.ProtoValueType Type {
+        get {
+            return Value.Convert();
+        }
+        init {
+            Value = value.Convert();
+        }
+    }
 
     public object? Data {
         get {
@@ -49,11 +60,11 @@ public sealed record ProtoValue {
     internal ReadOnlyMemory<byte> Bytes => _bytes;
 
     public bool Equals(ProtoValue? other) {
-        return other is not null && Type == other.Type && object.Equals(Data, other.Data);
+        return other is not null && Value == other.Value && Equals(Data, other.Data);
     }
 
     public override int GetHashCode() {
-        return unchecked(((int)Type * Registry.HASH_CODE) ^ (Data?.GetHashCode() ?? 0));
+        return unchecked(((int)Value * Registry.HASH_MULTIPLIER) ^ (Data?.GetHashCode() ?? 0));
     }
 
     public override string ToString() {
@@ -64,20 +75,20 @@ public sealed record ProtoValue {
         };
     }
 
-    internal static ProtoValue FromNumber(Registry.ProtoValueType type, ulong number) {
-        return new ProtoValue { Type = type, _number = number, _typed = true };
+    internal static ProtoValue FromNumber(ProtoRegistry.ValueKind value, ulong number) {
+        return new ProtoValue { Value = value, _number = number, _typed = true };
     }
 
     internal static ProtoValue FromText(string text) {
-        return new ProtoValue { Type = Registry.ProtoValueType.String, _text = text, _typed = true };
+        return new ProtoValue { Value = ProtoRegistry.ValueKind.String, _text = text, _typed = true };
     }
 
     internal static ProtoValue FromBytes(ReadOnlyMemory<byte> bytes) {
-        return new ProtoValue { Type = Registry.ProtoValueType.Bytes, _bytes = bytes, _typed = true };
+        return new ProtoValue { Value = ProtoRegistry.ValueKind.Bytes, _bytes = bytes, _typed = true };
     }
 
     internal static ProtoValue FromNodes(IReadOnlyList<ProtoNode> nodes) {
-        return new ProtoValue { Type = Registry.ProtoValueType.Nested, _nodes = nodes, _typed = true };
+        return new ProtoValue { Value = ProtoRegistry.ValueKind.Nested, _nodes = nodes, _typed = true };
     }
 
     private static string ToHex(ReadOnlySpan<byte> bytes) {
@@ -98,12 +109,12 @@ public sealed record ProtoValue {
     private object? Materialize() {
         return !_typed
             ? null
-            : Type switch {
-                Registry.ProtoValueType.Varint or Registry.ProtoValueType.Fixed64 => _number,
-                Registry.ProtoValueType.Fixed32 => (uint)_number,
-                Registry.ProtoValueType.String => _text,
-                Registry.ProtoValueType.Bytes => _bytes,
-                Registry.ProtoValueType.Nested => _nodes,
+            : Value switch {
+                ProtoRegistry.ValueKind.Varint or ProtoRegistry.ValueKind.Fixed64 => _number,
+                ProtoRegistry.ValueKind.Fixed32 => (uint)_number,
+                ProtoRegistry.ValueKind.String => _text,
+                ProtoRegistry.ValueKind.Bytes => _bytes,
+                ProtoRegistry.ValueKind.Nested => _nodes,
                 _ => null
             };
     }

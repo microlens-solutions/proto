@@ -21,7 +21,7 @@ public static class Registry {
 
     internal const string HEX = "0123456789ABCDEF";
 
-    internal const int HASH_CODE = 397;
+    internal const int HASH_MULTIPLIER = 397;
 
     internal enum ProtoChannelType {
         None = 0,
@@ -55,6 +55,7 @@ public static class Registry {
         Bypassed = 2
     }
 
+    [Obsolete("It will be removed in 3.0.0, use ProtoRegistry.ValueKind")]
     public enum ProtoValueType {
         None = 0,
 
@@ -71,6 +72,7 @@ public static class Registry {
         Nested = 32
     }
 
+    [Obsolete("It will be removed in 3.0.0, use ProtoRegistry.FormatterKind")]
     public enum ProtoFormatterKey {
         None = 0,
 
@@ -81,6 +83,7 @@ public static class Registry {
         Custom = 4
     }
 
+    [Obsolete("It will be removed in 3.0.0, use ProtoRegistry.SinkKind")]
     public enum ProtoSinkKey {
         None = 0,
 
@@ -90,6 +93,7 @@ public static class Registry {
     }
 
     [Flags]
+    [Obsolete("It will be removed in 3.0.0, use ProtoRegistry.InterceptingMode")]
     public enum ProtoCaptureMode {
         None = 0,
 
@@ -101,6 +105,7 @@ public static class Registry {
     }
 
     [Flags]
+    [Obsolete("It will be removed in 3.0.0, use ProtoRegistry.LoggingMode")]
     public enum ProtoLogScope {
         None = 0,
 

@@ -1,4 +1,4 @@
-﻿using Microlens.Proto.Shared;
+using Microlens.Proto.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 
@@ -9,9 +9,9 @@ internal sealed class ProtoSinkResolver(IServiceProvider provider) : IProtoSinkR
 
     public IProtoSink Get(string key) {
         if (string.IsNullOrWhiteSpace(key)) {
-            key = Registry.ProtoSinkKey.Default.ToString();
+            key = ProtoRegistry.SinkKind.Default.ToString();
         }
 
-        return _provider.GetKeyedService<IProtoSink>(key) ?? _provider.GetKeyedService<IProtoSink>(Registry.ProtoSinkKey.Default.ToString())!;
+        return _provider.GetKeyedService<IProtoSink>(key) ?? _provider.GetKeyedService<IProtoSink>(ProtoRegistry.SinkKind.Default.ToString())!;
     }
 }

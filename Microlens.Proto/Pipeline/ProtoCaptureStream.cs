@@ -20,7 +20,7 @@ internal sealed class ProtoCaptureStream : Stream {
 
     private RecyclableMemoryStream? _buffer;
 
-    private int _state;
+    private Registry.StreamStateType _state;
 
     internal ProtoCaptureStream(Stream inner, HttpResponse response, long? limit) {
         _inner = inner;
@@ -84,7 +84,7 @@ internal sealed class ProtoCaptureStream : Stream {
     internal bool TryGetPayload(out ReadOnlySequence<byte> payload) {
         Decide();
 
-        if (_state != (int)Registry.StreamStateType.Capturing) {
+        if (_state != Registry.StreamStateType.Capturing) {
             payload = default;
             return false;
         }
@@ -103,22 +103,22 @@ internal sealed class ProtoCaptureStream : Stream {
     }
 
     private void Decide() {
-        if (_state == (int)Registry.StreamStateType.Undecided) {
-            _state = Helpers.IsProtobuf(_response.ContentType) ? (int)Registry.StreamStateType.Capturing : (int)Registry.StreamStateType.Bypassed;
+        if (_state == Registry.StreamStateType.Undecided) {
+            _state = Helpers.IsProtobuf(_response.ContentType) ? Registry.StreamStateType.Capturing : Registry.StreamStateType.Bypassed;
         }
     }
 
     private void Capture(ReadOnlySpan<byte> data) {
         Decide();
 
-        if (_state != (int)Registry.StreamStateType.Capturing || data.IsEmpty) {
+        if (_state != Registry.StreamStateType.Capturing || data.IsEmpty) {
             return;
         }
 
         _buffer ??= ProtoTracer.Streams.GetStream();
 
         if (_limit is { } limit && _buffer.Length + data.Length > limit) {
-            _state = (int)Registry.StreamStateType.Bypassed;
+            _state = Registry.StreamStateType.Bypassed;
             _buffer.Dispose();
             _buffer = null;
             return;

@@ -22,6 +22,7 @@ internal sealed class JsonProtoFormatter : IProtoFormatter {
 
     private static readonly JsonEncodedText _children = JsonEncodedText.Encode("children");
 
+    [Obsolete]
     public Registry.ProtoFormatterKey Key => Registry.ProtoFormatterKey.Json;
 
     public string Name => "Json";
@@ -47,7 +48,7 @@ internal sealed class JsonProtoFormatter : IProtoFormatter {
             writer.WriteString(_wireType, node.WireType.ToString());
 
             if (node.Value is { } value) {
-                writer.WriteString(_type, value.Type.ToString());
+                writer.WriteString(_type, value.Value.ToString());
                 WriteValue(writer, value);
             }
 
@@ -68,18 +69,18 @@ internal sealed class JsonProtoFormatter : IProtoFormatter {
             return;
         }
 
-        switch (value.Type) {
-            case Registry.ProtoValueType.Varint:
-            case Registry.ProtoValueType.Fixed32:
-            case Registry.ProtoValueType.Fixed64:
+        switch (value.Value) {
+            case ProtoRegistry.ValueKind.Varint:
+            case ProtoRegistry.ValueKind.Fixed32:
+            case ProtoRegistry.ValueKind.Fixed64:
                 writer.WriteNumber(_value, value.Number);
                 break;
 
-            case Registry.ProtoValueType.String:
+            case ProtoRegistry.ValueKind.String:
                 writer.WriteString(_value, value.Text);
                 break;
 
-            case Registry.ProtoValueType.Bytes:
+            case ProtoRegistry.ValueKind.Bytes:
                 writer.WriteBase64String(_value, value.Bytes.Span);
                 break;
         }
