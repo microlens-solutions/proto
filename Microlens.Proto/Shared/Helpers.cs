@@ -94,9 +94,9 @@ internal static class Helpers {
         int separator = contentType.IndexOf(';');
 
 #if NET
-        return separator < 0 ? contentType : contentType[..separator].Trim();
+        return (separator < 0 ? contentType : contentType[..separator]).Trim();
 #else
-        return separator < 0 ? contentType : contentType.Slice(0, separator).Trim();
+        return (separator < 0 ? contentType : contentType.Slice(0, separator)).Trim();
 #endif
     }
 }
