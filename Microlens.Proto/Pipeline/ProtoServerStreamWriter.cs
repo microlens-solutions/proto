@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+#if NET
+using Grpc.Core;
 using System;
 using System.Threading.Tasks;
 
@@ -15,3 +16,4 @@ internal sealed class ProtoServerStreamWriter<TMessage>(IServerStreamWriter<TMes
         return inner.WriteAsync(message);
     }
 }
+#endif

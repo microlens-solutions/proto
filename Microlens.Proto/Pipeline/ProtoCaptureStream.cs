@@ -1,3 +1,4 @@
+#if NET
 using Microlens.Proto.Shared;
 using Microlens.Proto.Tracers;
 using Microsoft.AspNetCore.Http;
@@ -126,3 +127,4 @@ internal sealed class ProtoCaptureStream : Stream {
         _buffer.Write(data);
     }
 }
+#endif

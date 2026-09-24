@@ -29,8 +29,7 @@ internal sealed class ProtoHandler : DelegatingHandler {
 
         HttpResponseMessage response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        if (_tracer.TraceResponse && Helpers.IsProtobuf(response.Content.Headers.ContentType?.MediaType) && _tracer.CanCapture(response.Content.Headers.ContentLength)) {
-            HttpContent body = response.Content;
+        if (_tracer.TraceResponse && response.Content is { } body && Helpers.IsProtobuf(body.Headers.ContentType?.MediaType) && _tracer.CanCapture(body.Headers.ContentLength)) {
             RecyclableMemoryStream buffer;
 
             try {
@@ -52,7 +51,12 @@ internal sealed class ProtoHandler : DelegatingHandler {
         RecyclableMemoryStream buffer = ProtoTracer.Streams.GetStream();
 
         try {
+#if NET5_0_OR_GREATER
             await content.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
+#else
+            cancellationToken.ThrowIfCancellationRequested();
+            await content.CopyToAsync(buffer).ConfigureAwait(false);
+#endif
             return buffer;
         }
         catch {

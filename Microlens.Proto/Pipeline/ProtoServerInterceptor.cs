@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+#if NET
+using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microlens.Proto.Shared;
 using Microlens.Proto.Tracers;
@@ -96,3 +97,4 @@ internal sealed class ProtoServerInterceptor : Interceptor {
         return Helpers.IsGrpc(http.Request.ContentType) && !Helpers.ShouldSkipInterceptor(http.GetEndpoint()?.Metadata);
     }
 }
+#endif

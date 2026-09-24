@@ -1,4 +1,3 @@
-using Grpc.AspNetCore.Server;
 using Grpc.Net.ClientFactory;
 using Microlens.Proto.Decoders;
 using Microlens.Proto.Formatters;
@@ -14,6 +13,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 
+#if NET
+using Grpc.AspNetCore.Server;
+#endif
+
 namespace Microlens.Proto.Extensions;
 
 public static class ServiceCollectionExtensions {
@@ -22,8 +25,8 @@ public static class ServiceCollectionExtensions {
     }
 
     public static IServiceCollection AddMicrolensProto(this IServiceCollection services, Action<ProtoOptions> options) {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(options);
+        Guard.NotNull(services);
+        Guard.NotNull(options);
 
         _ = services.Configure(options);
 
@@ -53,7 +56,9 @@ public static class ServiceCollectionExtensions {
 
         _ = services.AddTransient(sp => new ProtoHandler(sp.GetRequiredService<ProtoTracer>()));
         _ = services.AddTransient(sp => new ProtoClientInterceptor(sp.GetRequiredService<ProtoTracer>()));
+#if NET
         _ = services.AddTransient(sp => new ProtoServerInterceptor(sp.GetRequiredService<ProtoTracer>()));
+#endif
 
         _ = services.ConfigureAll<HttpClientFactoryOptions>(options => {
             options.HttpMessageHandlerBuilderActions.Add(builder => {
@@ -65,9 +70,11 @@ public static class ServiceCollectionExtensions {
             options.InterceptorRegistrations.Add(new Grpc.Net.ClientFactory.InterceptorRegistration(InterceptorScope.Channel, provider => provider.GetRequiredService<ProtoClientInterceptor>()));
         });
 
+#if NET
         _ = services.ConfigureAll<GrpcServiceOptions>(options => {
             options.Interceptors.Add<ProtoServerInterceptor>();
         });
+#endif
 
         return services;
     }

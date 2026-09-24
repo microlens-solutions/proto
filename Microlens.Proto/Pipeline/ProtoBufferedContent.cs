@@ -1,5 +1,4 @@
 using Microsoft.IO;
-using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -23,12 +22,14 @@ internal sealed class ProtoBufferedContent : HttpContent {
     }
 
     protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) {
-        return SerializeToStreamAsync(stream, context, CancellationToken.None);
+        return WriteToAsync(stream, CancellationToken.None);
     }
 
+#if NET5_0_OR_GREATER
     protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context, CancellationToken cancellationToken) {
-        return stream.WriteAsync(GetMemory(), cancellationToken).AsTask();
+        return WriteToAsync(stream, cancellationToken);
     }
+#endif
 
     protected override Task<Stream> CreateContentReadStreamAsync() {
         return Task.FromResult<Stream>(new MemoryStream(_buffer.GetBuffer(), 0, checked((int)_buffer.Length), writable: false));
@@ -48,7 +49,7 @@ internal sealed class ProtoBufferedContent : HttpContent {
         base.Dispose(disposing);
     }
 
-    private ReadOnlyMemory<byte> GetMemory() {
-        return new ReadOnlyMemory<byte>(_buffer.GetBuffer(), 0, checked((int)_buffer.Length));
+    private Task WriteToAsync(Stream stream, CancellationToken cancellationToken) {
+        return stream.WriteAsync(_buffer.GetBuffer(), 0, checked((int)_buffer.Length), cancellationToken);
     }
 }

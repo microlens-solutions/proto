@@ -21,6 +21,8 @@ public static class Registry {
 
     internal const string HEX = "0123456789ABCDEF";
 
+    internal const int HASH_CODE = 397;
+
     internal enum ProtoChannelType {
         None = 0,
 

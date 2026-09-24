@@ -5,7 +5,7 @@
 		<Copyright>Copyright © 2026 Microlens</Copyright>
 		<Description>High-performance schemaless Protocol Buffers decoder and inspector for .NET. Intercepts, decodes and logs Protobuf traffic across HttpClient, ASP.NET Core and gRPC (unary and streaming) without .proto files or generated classes.</Description>
 
-		<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+		<TargetFrameworks>net472;net48;netstandard2.0;net8.0;net10.0</TargetFrameworks>
 		<OutputType>Library</OutputType>
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
@@ -35,10 +35,18 @@
 
 	<ItemGroup>
 		<PackageReference Include="Google.Protobuf" Version="3.36.1" />
-		<PackageReference Include="Grpc.AspNetCore.Server" Version="2.83.0" />
 		<PackageReference Include="Grpc.Net.ClientFactory" Version="2.83.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
 		<PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'netstandard2.0'">
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+		<PackageReference Include="System.Text.Json" Version="10.0.12" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+		<PackageReference Include="Grpc.AspNetCore.Server" Version="2.83.0" />
 	</ItemGroup>
 
 </Project>

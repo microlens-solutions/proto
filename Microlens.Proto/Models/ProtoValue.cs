@@ -53,13 +53,13 @@ public sealed record ProtoValue {
     }
 
     public override int GetHashCode() {
-        return HashCode.Combine(Type, Data);
+        return unchecked(((int)Type * Registry.HASH_CODE) ^ (Data?.GetHashCode() ?? 0));
     }
 
     public override string ToString() {
         return Data switch {
             null => string.Empty,
-            ReadOnlyMemory<byte> bytes => string.Concat("0x", Convert.ToHexString(bytes.Span)),
+            ReadOnlyMemory<byte> bytes => string.Concat("0x", ToHex(bytes.Span)),
             _ => Data.ToString() ?? string.Empty
         };
     }
@@ -78,6 +78,21 @@ public sealed record ProtoValue {
 
     internal static ProtoValue FromNodes(IReadOnlyList<ProtoNode> nodes) {
         return new ProtoValue { Type = Registry.ProtoValueType.Nested, _nodes = nodes, _typed = true };
+    }
+
+    private static string ToHex(ReadOnlySpan<byte> bytes) {
+#if NET5_0_OR_GREATER
+        return Convert.ToHexString(bytes);
+#else
+        char[] chars = new char[bytes.Length * 2];
+
+        for (int i = 0; i < bytes.Length; i++) {
+            chars[i * 2] = Registry.HEX[bytes[i] >> 4];
+            chars[(i * 2) + 1] = Registry.HEX[bytes[i] & 0x0F];
+        }
+
+        return new string(chars);
+#endif
     }
 
     private object? Materialize() {

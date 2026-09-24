@@ -1,4 +1,5 @@
 using Grpc.Core;
+using Microlens.Proto.Shared;
 using System;
 
 namespace Microlens.Proto.Extensions;
@@ -19,8 +20,8 @@ internal static class MetadataExtensions {
     }
 
     internal static Metadata Without(this Metadata metadata, string key) {
-        ArgumentNullException.ThrowIfNull(metadata);
-        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        Guard.NotNull(metadata);
+        Guard.NotNullOrWhiteSpace(key);
 
         var copy = new Metadata();
 

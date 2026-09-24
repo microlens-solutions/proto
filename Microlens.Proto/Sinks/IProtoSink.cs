@@ -1,4 +1,4 @@
-﻿using Microlens.Proto.Models;
+using Microlens.Proto.Models;
 using Microlens.Proto.Shared;
 using Microsoft.Extensions.Logging;
 using System;
@@ -12,9 +12,13 @@ public interface IProtoSink {
 
     string Name { get; }
 
+#if NETCOREAPP3_0_OR_GREATER
     bool IsEnabled(LogLevel level) {
         return level != LogLevel.None;
     }
+#else
+    bool IsEnabled(LogLevel level);
+#endif
 
     Task LogAsync(LogLevel level, IProtoScope scope, string payload, CancellationToken cancellationToken);
 

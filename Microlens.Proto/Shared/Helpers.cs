@@ -1,12 +1,15 @@
 using Grpc.Core;
 using Grpc.Core.Interceptors;
-using Microlens.Proto.Attributes;
 using Microlens.Proto.Extensions;
 using Microlens.Proto.Models;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
 using System;
 using System.Net.Http;
+
+#if NET
+using Microlens.Proto.Attributes;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
+#endif
 
 namespace Microlens.Proto.Shared;
 
@@ -22,12 +25,13 @@ internal static class Helpers {
     }
 
     internal static bool IsProtobuf(string? contentType) {
-        return IsProtobufMediaType(contentType);
+        return IsProtobufMediaType(contentType.AsSpan());
     }
 
+#if NET
     internal static bool AcceptsProtobuf(StringValues accept) {
         for (int i = 0; i < accept.Count; i++) {
-            ReadOnlySpan<char> remaining = accept[i];
+            ReadOnlySpan<char> remaining = accept[i].AsSpan();
 
             while (!remaining.IsEmpty) {
                 int separator = remaining.IndexOf(',');
@@ -37,7 +41,7 @@ internal static class Helpers {
                     return true;
                 }
 
-                remaining = separator < 0 ? ReadOnlySpan<char>.Empty : remaining[(separator + 1)..];
+                remaining = separator < 0 ? [] : remaining[(separator + 1)..];
             }
         }
 
@@ -45,8 +49,8 @@ internal static class Helpers {
     }
 
     internal static bool IsGrpc(string? contentType) {
-        ReadOnlySpan<char> media = GetMediaType(contentType);
-        return media.StartsWith(Registry.MEDIA_TYPE_GRPC, StringComparison.OrdinalIgnoreCase) && (media.Length == Registry.MEDIA_TYPE_GRPC.Length || media[Registry.MEDIA_TYPE_GRPC.Length] is '+' or '-');
+        ReadOnlySpan<char> media = GetMediaType(contentType.AsSpan());
+        return media.StartsWith(Registry.MEDIA_TYPE_GRPC.AsSpan(), StringComparison.OrdinalIgnoreCase) && (media.Length == Registry.MEDIA_TYPE_GRPC.Length || media[Registry.MEDIA_TYPE_GRPC.Length] is '+' or '-');
     }
 
     internal static bool ShouldSkipMiddleware(EndpointMetadataCollection? metadata) {
@@ -56,6 +60,7 @@ internal static class Helpers {
     internal static bool ShouldSkipInterceptor(EndpointMetadataCollection? metadata) {
         return metadata?.GetMetadata<SkipProtoInterceptorAttribute>() is not null;
     }
+#endif
 
     internal static bool TryConsumeSkipHeader(HttpRequestMessage request) {
         bool skip = request.Headers.Remove(Registry.K_SKIP_PROTO_HANDLER);
@@ -81,12 +86,17 @@ internal static class Helpers {
     private static bool IsProtobufMediaType(ReadOnlySpan<char> contentType) {
         ReadOnlySpan<char> media = GetMediaType(contentType);
 
-        return media.Equals(Registry.MEDIA_TYPE_PROTOBUF, StringComparison.OrdinalIgnoreCase) ||
-               media.Equals(Registry.MEDIA_TYPE_X_PROTOBUF, StringComparison.OrdinalIgnoreCase);
+        return media.Equals(Registry.MEDIA_TYPE_PROTOBUF.AsSpan(), StringComparison.OrdinalIgnoreCase) ||
+               media.Equals(Registry.MEDIA_TYPE_X_PROTOBUF.AsSpan(), StringComparison.OrdinalIgnoreCase);
     }
 
     private static ReadOnlySpan<char> GetMediaType(ReadOnlySpan<char> contentType) {
         int separator = contentType.IndexOf(';');
-        return (separator < 0 ? contentType : contentType[..separator]).Trim();
+
+#if NET
+        return separator < 0 ? contentType : contentType[..separator];
+#else
+        return separator < 0 ? contentType : contentType.Slice(0, separator);
+#endif
     }
 }
