@@ -1,4 +1,3 @@
-using Microlens.Proto.Extensions;
 using Microlens.Proto.Shared;
 using Microsoft.Extensions.Logging;
 using System;
@@ -6,10 +5,6 @@ using System;
 namespace Microlens.Proto.Models;
 
 public sealed class ProtoOptions {
-    private string _formatter = string.Empty;
-
-    private string _sink = string.Empty;
-
     public ProtoRegistry.FormatterKind Formatter { get; set; } = ProtoRegistry.FormatterKind.Default;
 
     public ProtoRegistry.SinkKind Sink { get; set; } = ProtoRegistry.SinkKind.Default;
@@ -20,23 +15,9 @@ public sealed class ProtoOptions {
 
     public LogLevel LogLevel { get; set; } = LogLevel.Debug;
 
-    public string CustomFormatterName {
-        get {
-            return !string.IsNullOrWhiteSpace(_formatter) && Formatter == ProtoRegistry.FormatterKind.Custom ? _formatter : Formatter.ToString();
-        }
-        set {
-            _formatter = value;
-        }
-    }
+    public string CustomFormatterName { get; set; } = string.Empty;
 
-    public string CustomSinkName {
-        get {
-            return !string.IsNullOrWhiteSpace(_sink) && Sink == ProtoRegistry.SinkKind.Custom ? _sink : Sink.ToString();
-        }
-        set {
-            _sink = value;
-        }
-    }
+    public string CustomSinkName { get; set; } = string.Empty;
 
     public long? MaximumBytesCaptured { get; set; }
 
@@ -48,55 +29,21 @@ public sealed class ProtoOptions {
 
     public bool GlobalServerInterceptorEnabled { get; set; } = true;
 
-    [Obsolete]
-    private Registry.ProtoFormatterKey _legacyFormatter = Registry.ProtoFormatterKey.Default;
+    internal string FormatterName => Formatter == ProtoRegistry.FormatterKind.Custom ? CustomFormatterName : Formatter.ToString();
 
-    [Obsolete("It will be removed in 3.0.0, use ProtoOptions.Formatter")]
-    public Registry.ProtoFormatterKey FormatterKey {
-        get {
-            return _legacyFormatter;
-        }
-        set {
-            _legacyFormatter = Formatter.Convert();
-        }
-    }
+    internal string SinkName => Sink == ProtoRegistry.SinkKind.Custom ? CustomSinkName : Sink.ToString();
 
-    [Obsolete]
-    private Registry.ProtoSinkKey _legacySink = Registry.ProtoSinkKey.Default;
-
-    [Obsolete("It will be removed in 3.0.0, use ProtoOptions.Sink")]
-    public Registry.ProtoSinkKey SinkKey {
-        get {
-            return _legacySink;
+    internal void Validate() {
+        if (MaximumBytesCaptured is <= 0L) {
+            throw new InvalidOperationException($"{nameof(ProtoOptions)}.{nameof(MaximumBytesCaptured)} must be greater than zero when set.");
         }
-        set {
-            _legacySink = Sink.Convert();
-        }
-    }
 
-    [Obsolete]
-    private Registry.ProtoCaptureMode _legacyIntercepting = Registry.ProtoCaptureMode.Both;
-
-    [Obsolete("It will be removed in 3.0.0, use ProtoOptions.Intercepting")]
-    public Registry.ProtoCaptureMode CaptureMode {
-        get {
-            return _legacyIntercepting;
+        if (Formatter == ProtoRegistry.FormatterKind.Custom && string.IsNullOrWhiteSpace(CustomFormatterName)) {
+            throw new InvalidOperationException($"{nameof(ProtoOptions)}.{nameof(CustomFormatterName)} is required when {nameof(Formatter)} is {nameof(ProtoRegistry.FormatterKind.Custom)}.");
         }
-        set {
-            _legacyIntercepting = Intercepting.Convert();
-        }
-    }
 
-    [Obsolete]
-    private Registry.ProtoLogScope _legacylogging = Registry.ProtoLogScope.Both;
-
-    [Obsolete("It will be removed in 3.0.0, use ProtoOptions.Logging")]
-    public Registry.ProtoLogScope LogScope {
-        get {
-            return _legacylogging;
-        }
-        set {
-            _legacylogging = Logging.Convert();
+        if (Sink == ProtoRegistry.SinkKind.Custom && string.IsNullOrWhiteSpace(CustomSinkName)) {
+            throw new InvalidOperationException($"{nameof(ProtoOptions)}.{nameof(CustomSinkName)} is required when {nameof(Sink)} is {nameof(ProtoRegistry.SinkKind.Custom)}.");
         }
     }
 }

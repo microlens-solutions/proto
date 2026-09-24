@@ -1,4 +1,4 @@
-﻿using Microlens.Proto.Models;
+using Microlens.Proto.Models;
 using Microlens.Proto.Shared;
 using Microsoft.Extensions.Logging;
 using System;
@@ -8,8 +8,7 @@ using System.Threading.Tasks;
 namespace Microlens.Proto.Sinks;
 
 internal sealed class NoneProtoSink : IProtoSink {
-    [Obsolete]
-    public Registry.ProtoSinkKey Key => Registry.ProtoSinkKey.None;
+    public ProtoRegistry.SinkKind Key => ProtoRegistry.SinkKind.None;
 
     public string Name => "None";
 

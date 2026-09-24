@@ -22,8 +22,7 @@ internal sealed class JsonProtoFormatter : IProtoFormatter {
 
     private static readonly JsonEncodedText _children = JsonEncodedText.Encode("children");
 
-    [Obsolete]
-    public Registry.ProtoFormatterKey Key => Registry.ProtoFormatterKey.Json;
+    public ProtoRegistry.FormatterKind Key => ProtoRegistry.FormatterKind.Json;
 
     public string Name => "Json";
 

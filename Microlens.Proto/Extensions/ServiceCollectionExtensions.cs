@@ -9,7 +9,6 @@ using Microlens.Proto.Sinks;
 using Microlens.Proto.Tracers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 
@@ -50,8 +49,7 @@ public static class ServiceCollectionExtensions {
             sp.GetRequiredService<IOptions<ProtoOptions>>(),
             sp.GetRequiredService<IProtoInspector>(),
             sp.GetRequiredService<IProtoFormatterResolver>(),
-            sp.GetRequiredService<IProtoSinkResolver>(),
-            sp.GetService<ILoggerFactory>()?.CreateLogger(Registry.LOGGER_CATEGORY))
+            sp.GetRequiredService<IProtoSinkResolver>())
         );
 
         _ = services.AddTransient(sp => new ProtoHandler(sp.GetRequiredService<ProtoTracer>()));

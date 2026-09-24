@@ -1,4 +1,3 @@
-using Microlens.Proto.Extensions;
 using Microlens.Proto.Shared;
 using System;
 using System.Collections.Generic;
@@ -21,17 +20,7 @@ public sealed record ProtoValue {
 
     private int _materialized;
 
-    public ProtoRegistry.ValueKind Value { get; init; }
-
-    [Obsolete("It will be removed in 3.0.0, use ProtoRegistry.ValueKind")]
-    public Registry.ProtoValueType Type {
-        get {
-            return Value.Convert();
-        }
-        init {
-            Value = value.Convert();
-        }
-    }
+    public required ProtoRegistry.ValueKind Value { get; init; }
 
     public object? Data {
         get {

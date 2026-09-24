@@ -8,8 +8,7 @@ using System.Threading.Tasks;
 namespace Microlens.Proto.Sinks;
 
 public interface IProtoSink {
-    [Obsolete("It will be replaced by ProtoRegistry.SinkKey in 3.0.0")]
-    Registry.ProtoSinkKey Key { get; }
+    ProtoRegistry.SinkKind Key { get; }
 
     string Name { get; }
 

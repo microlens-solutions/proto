@@ -7,8 +7,7 @@ using System.Text;
 namespace Microlens.Proto.Formatters;
 
 internal sealed class DefaultProtoFormatter : IProtoFormatter {
-    [Obsolete]
-    public Registry.ProtoFormatterKey Key => Registry.ProtoFormatterKey.Default;
+    public ProtoRegistry.FormatterKind Key => ProtoRegistry.FormatterKind.Default;
 
     public string Name => "Default";
 

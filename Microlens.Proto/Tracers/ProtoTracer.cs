@@ -1,5 +1,4 @@
 using Google.Protobuf;
-using Microlens.Proto.Extensions;
 using Microlens.Proto.Formatters;
 using Microlens.Proto.Inspectors;
 using Microlens.Proto.Models;
@@ -8,7 +7,6 @@ using Microlens.Proto.Sinks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IO;
-using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Threading;
@@ -17,11 +15,6 @@ using System.Threading.Tasks;
 namespace Microlens.Proto.Tracers;
 
 internal sealed class ProtoTracer {
-    private static readonly Action<ILogger, string, string, string, Exception?> _unresolved = LoggerMessage.Define<string, string, string>(
-        LogLevel.Warning,
-        new EventId(1, "UnresolvedCustomName"),
-        "Custom {Component} '{Name}' is not registered; falling back to '{Fallback}'.");
-
     private readonly IProtoInspector _inspector;
 
     private readonly IProtoFormatter _formatter;
@@ -32,34 +25,18 @@ internal sealed class ProtoTracer {
 
     private readonly bool _decode;
 
-    [Obsolete]
-    internal ProtoTracer(IOptions<ProtoOptions> options, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink, ILogger? logger) {
+    internal ProtoTracer(IOptions<ProtoOptions> options, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink) {
         Options = options.Value;
-
-        if (Options.MaximumBytesCaptured is <= 0L) {
-            throw new InvalidOperationException($"{nameof(ProtoOptions)}.{nameof(ProtoOptions.MaximumBytesCaptured)} must be greater than zero when set.");
-        }
+        Options.Validate();
 
         _inspector = inspector;
-        _formatter = formatter.Get(Options.CustomFormatterName);
-        _sink = sink.Get(Options.CustomSinkName);
+        _formatter = formatter.Get(Options.FormatterName);
+        _sink = sink.Get(Options.SinkName);
         _level = Options.LogLevel;
-        _decode = _formatter.Key != ProtoRegistry.FormatterKind.None.Convert();
+        _decode = _formatter.Key != ProtoRegistry.FormatterKind.None;
 
         TraceRequest = Options.Intercepting.HasFlag(ProtoRegistry.InterceptingMode.Request) && Options.Logging.HasFlag(ProtoRegistry.LoggingMode.Request);
         TraceResponse = Options.Intercepting.HasFlag(ProtoRegistry.InterceptingMode.Response) && Options.Logging.HasFlag(ProtoRegistry.LoggingMode.Response);
-
-        if (logger is null) {
-            return;
-        }
-
-        if (Options.Formatter == ProtoRegistry.FormatterKind.Custom && _formatter.Key != ProtoRegistry.FormatterKind.Custom.Convert()) {
-            _unresolved(logger, "formatter", Options.CustomFormatterName, _formatter.Name, null);
-        }
-
-        if (Options.Sink == ProtoRegistry.SinkKind.Custom && _sink.Key != ProtoRegistry.SinkKind.Custom.Convert()) {
-            _unresolved(logger, "sink", Options.CustomSinkName, _sink.Name, null);
-        }
     }
 
     internal static RecyclableMemoryStreamManager Streams { get; } = new();

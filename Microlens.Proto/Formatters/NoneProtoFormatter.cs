@@ -1,13 +1,11 @@
-﻿using Microlens.Proto.Models;
+using Microlens.Proto.Models;
 using Microlens.Proto.Shared;
-using System;
 using System.Collections.Generic;
 
 namespace Microlens.Proto.Formatters;
 
 internal sealed class NoneProtoFormatter : IProtoFormatter {
-    [Obsolete]
-    public Registry.ProtoFormatterKey Key => Registry.ProtoFormatterKey.None;
+    public ProtoRegistry.FormatterKind Key => ProtoRegistry.FormatterKind.None;
 
     public string Name => "None";
 

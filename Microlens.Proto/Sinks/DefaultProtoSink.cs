@@ -1,4 +1,4 @@
-﻿using Microlens.Proto.Models;
+using Microlens.Proto.Models;
 using Microlens.Proto.Shared;
 using Microsoft.Extensions.Logging;
 using System;
@@ -10,8 +10,7 @@ namespace Microlens.Proto.Sinks;
 internal sealed class DefaultProtoSink(ILogger<DefaultProtoSink> logger) : IProtoSink {
     private readonly ILogger _logger = logger;
 
-    [Obsolete]
-    public Registry.ProtoSinkKey Key => Registry.ProtoSinkKey.Default;
+    public ProtoRegistry.SinkKind Key => ProtoRegistry.SinkKind.Default;
 
     public string Name => "Default";
 
