@@ -1,7 +1,8 @@
-﻿using Microlens.Proto.Shared;
+using Microlens.Proto.Shared;
 using Microlens.Proto.Tracers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IO;
+using System.Buffers;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,13 +39,12 @@ internal sealed class ProtoMiddleware {
         string path = string.Concat(request.PathBase.Value, request.Path.Value);
         CancellationToken aborted = context.RequestAborted;
 
-        if (traceRequest) {
-            request.EnableBuffering();
-
-            using RecyclableMemoryStream requestBuffer = ProtoTracer.Streams.GetStream();
+        if (traceRequest && _tracer.CanCapture(request.ContentLength)) {
+            RecyclableMemoryStream requestBuffer = ProtoTracer.Streams.GetStream();
+            context.Response.RegisterForDispose(requestBuffer);
             await request.Body.CopyToAsync(requestBuffer, aborted).ConfigureAwait(false);
-
-            request.Body.Position = 0;
+            requestBuffer.Position = 0;
+            request.Body = requestBuffer;
             await _tracer.TraceAsync(requestBuffer.GetReadOnlySequence(), Registry.ProtoChannelType.Http, Registry.ProtoDirectionType.Inbound, Registry.ProtoPhaseType.Request, path, aborted).ConfigureAwait(false);
         }
 
@@ -55,8 +55,8 @@ internal sealed class ProtoMiddleware {
 
         HttpResponse response = context.Response;
         Stream original = response.Body;
-        using RecyclableMemoryStream responseBuffer = ProtoTracer.Streams.GetStream();
-        response.Body = responseBuffer;
+        using var capture = new ProtoCaptureStream(original, response, _tracer.Options.MaximumBytesCaptured);
+        response.Body = capture;
 
         try {
             await _next(context).ConfigureAwait(false);
@@ -65,13 +65,8 @@ internal sealed class ProtoMiddleware {
             response.Body = original;
         }
 
-        if (responseBuffer.Length > 0) {
-            responseBuffer.Position = 0;
-            await responseBuffer.CopyToAsync(original, aborted).ConfigureAwait(false);
-        }
-
-        if (Helpers.IsProtobuf(response.ContentType)) {
-            await _tracer.TraceAsync(responseBuffer.GetReadOnlySequence(), Registry.ProtoChannelType.Http, Registry.ProtoDirectionType.Outbound, Registry.ProtoPhaseType.Response, path, aborted).ConfigureAwait(false);
+        if (capture.TryGetPayload(out ReadOnlySequence<byte> payload)) {
+            await _tracer.TraceAsync(payload, Registry.ProtoChannelType.Http, Registry.ProtoDirectionType.Outbound, Registry.ProtoPhaseType.Response, path, aborted).ConfigureAwait(false);
         }
     }
 }

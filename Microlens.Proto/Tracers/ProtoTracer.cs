@@ -1,4 +1,4 @@
-﻿using Google.Protobuf;
+using Google.Protobuf;
 using Microlens.Proto.Formatters;
 using Microlens.Proto.Inspectors;
 using Microlens.Proto.Models;
@@ -7,6 +7,7 @@ using Microlens.Proto.Sinks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IO;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Threading;
@@ -15,6 +16,11 @@ using System.Threading.Tasks;
 namespace Microlens.Proto.Tracers;
 
 internal sealed class ProtoTracer {
+    private static readonly Action<ILogger, string, string, string, Exception?> _unresolved = LoggerMessage.Define<string, string, string>(
+        LogLevel.Warning,
+        new EventId(1, "UnresolvedCustomName"),
+        "Custom {Component} '{Name}' is not registered; falling back to '{Fallback}'.");
+
     private readonly IProtoInspector _inspector;
 
     private readonly IProtoFormatter _formatter;
@@ -25,8 +31,13 @@ internal sealed class ProtoTracer {
 
     private readonly bool _decode;
 
-    internal ProtoTracer(IOptions<ProtoOptions> options, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink) {
+    internal ProtoTracer(IOptions<ProtoOptions> options, IProtoInspector inspector, IProtoFormatterResolver formatter, IProtoSinkResolver sink, ILogger? logger) {
         Options = options.Value;
+
+        if (Options.MaximumBytesCaptured is <= 0L) {
+            throw new InvalidOperationException($"{nameof(ProtoOptions)}.{nameof(ProtoOptions.MaximumBytesCaptured)} must be greater than zero when set.");
+        }
+
         _inspector = inspector;
         _formatter = formatter.Get(Options.CustomFormatterName);
         _sink = sink.Get(Options.CustomSinkName);
@@ -35,6 +46,18 @@ internal sealed class ProtoTracer {
 
         TraceRequest = Options.CaptureMode.HasFlag(Registry.ProtoCaptureMode.Request) && Options.LogScope.HasFlag(Registry.ProtoLogScope.Request);
         TraceResponse = Options.CaptureMode.HasFlag(Registry.ProtoCaptureMode.Response) && Options.LogScope.HasFlag(Registry.ProtoLogScope.Response);
+
+        if (logger is null) {
+            return;
+        }
+
+        if (Options.FormatterKey == Registry.ProtoFormatterKey.Custom && _formatter.Key != Registry.ProtoFormatterKey.Custom) {
+            _unresolved(logger, "formatter", Options.CustomFormatterName, _formatter.Name, null);
+        }
+
+        if (Options.SinkKey == Registry.ProtoSinkKey.Custom && _sink.Key != Registry.ProtoSinkKey.Custom) {
+            _unresolved(logger, "sink", Options.CustomSinkName, _sink.Name, null);
+        }
     }
 
     internal static RecyclableMemoryStreamManager Streams { get; } = new();
@@ -46,6 +69,10 @@ internal sealed class ProtoTracer {
     internal bool TraceResponse { get; }
 
     internal bool IsActive => (TraceRequest || TraceResponse) && _sink.IsEnabled(_level);
+
+    internal bool CanCapture(long? length) {
+        return Options.MaximumBytesCaptured is not { } maximum || (length is { } actual && actual <= maximum);
+    }
 
     internal async Task TraceAsync(object? message, Registry.ProtoChannelType channel, Registry.ProtoDirectionType direction, Registry.ProtoPhaseType phase, string? path) {
         if (message is not IMessage protobuf || !_sink.IsEnabled(_level)) {

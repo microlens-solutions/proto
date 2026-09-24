@@ -1,10 +1,11 @@
-﻿using Microlens.Proto.Shared;
+using Microlens.Proto.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace Microlens.Proto.Models;
 
 public sealed class ProtoOptions {
     private string _formatterName = string.Empty;
+
     private string _sinkName = string.Empty;
 
     public Registry.ProtoFormatterKey FormatterKey { get; set; } = Registry.ProtoFormatterKey.Default;
@@ -34,6 +35,8 @@ public sealed class ProtoOptions {
             _sinkName = value;
         }
     }
+
+    public long? MaximumBytesCaptured { get; set; }
 
     public bool GlobalHandlerEnabled { get; set; } = true;
 

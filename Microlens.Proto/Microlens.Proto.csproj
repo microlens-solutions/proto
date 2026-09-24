@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Authors>Microlens</Authors>
-		<Copyright>Copyright © $([System.DateTime]::Now.Year) Microlens</Copyright>
+		<Copyright>Copyright © 2026 Microlens</Copyright>
 		<Description>High-performance schemaless Protocol Buffers decoder and inspector for .NET. Intercepts, decodes and logs Protobuf traffic across HttpClient, ASP.NET Core and gRPC (unary and streaming) without .proto files or generated classes.</Description>
-	  
+
 		<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
 		<OutputType>Library</OutputType>
 		<LangVersion>latest</LangVersion>
@@ -21,7 +21,9 @@
 		<EnablePackageValidation>true</EnablePackageValidation>
 		<PackageValidationBaselineVersion>2.0.0</PackageValidationBaselineVersion>
 		<PackageProjectUrl>https://github.com/microlens-solutions/proto</PackageProjectUrl>
-		
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
 		<RepositoryUrl>https://github.com/microlens-solutions/proto</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
@@ -30,7 +32,7 @@
 	<ItemGroup>
 		<None Include="..\README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
-	
+
 	<ItemGroup>
 		<PackageReference Include="Google.Protobuf" Version="3.36.1" />
 		<PackageReference Include="Grpc.AspNetCore.Server" Version="2.83.0" />

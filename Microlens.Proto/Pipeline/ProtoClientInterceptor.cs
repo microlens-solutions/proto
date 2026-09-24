@@ -1,4 +1,4 @@
-﻿using Grpc.Core;
+using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microlens.Proto.Shared;
 using Microlens.Proto.Tracers;
@@ -15,7 +15,7 @@ internal sealed class ProtoClientInterceptor : Interceptor {
     }
 
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation) {
-        if (!ShouldIntercept(context)) {
+        if (!ShouldIntercept(ref context)) {
             return continuation(request, context);
         }
 
@@ -35,7 +35,7 @@ internal sealed class ProtoClientInterceptor : Interceptor {
     }
 
     public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation) {
-        if (!ShouldIntercept(context)) {
+        if (!ShouldIntercept(ref context)) {
             return continuation(request, context);
         }
 
@@ -56,7 +56,7 @@ internal sealed class ProtoClientInterceptor : Interceptor {
     }
 
     public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncClientStreamingCallContinuation<TRequest, TResponse> continuation) {
-        if (!ShouldIntercept(context)) {
+        if (!ShouldIntercept(ref context)) {
             return continuation(context);
         }
 
@@ -76,7 +76,7 @@ internal sealed class ProtoClientInterceptor : Interceptor {
     }
 
     public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncDuplexStreamingCallContinuation<TRequest, TResponse> continuation) {
-        if (!ShouldIntercept(context)) {
+        if (!ShouldIntercept(ref context)) {
             return continuation(context);
         }
 
@@ -106,7 +106,7 @@ internal sealed class ProtoClientInterceptor : Interceptor {
         return message => _tracer.TraceAsync(message, Registry.ProtoChannelType.Grpc, direction, phase, path);
     }
 
-    private bool ShouldIntercept<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context) where TRequest : class where TResponse : class {
-        return !Helpers.TryConsumeSkipHeader(context.Options.Headers) && _tracer.Options.GlobalClientInterceptorEnabled && _tracer.IsActive;
+    private bool ShouldIntercept<TRequest, TResponse>(ref ClientInterceptorContext<TRequest, TResponse> context) where TRequest : class where TResponse : class {
+        return !Helpers.TryConsumeSkipHeader(ref context) && _tracer.Options.GlobalClientInterceptorEnabled && _tracer.IsActive;
     }
 }

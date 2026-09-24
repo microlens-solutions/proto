@@ -1,4 +1,4 @@
-﻿using Microlens.Proto.Models;
+using Microlens.Proto.Models;
 using Microlens.Proto.Shared;
 using System;
 using System.Collections.Generic;
@@ -31,7 +31,7 @@ internal sealed class DefaultProtoFormatter : IProtoFormatter {
 
             if (node.Value is { Type: not Registry.ProtoValueType.Nested } value) {
                 _ = builder.Append(": ");
-                AppendValue(builder, value.Data);
+                AppendValue(builder, value);
             }
 
             _ = builder.AppendLine();
@@ -42,7 +42,30 @@ internal sealed class DefaultProtoFormatter : IProtoFormatter {
         }
     }
 
-    private static void AppendValue(StringBuilder builder, object? data) {
+    private static void AppendValue(StringBuilder builder, ProtoValue value) {
+        if (!value.Typed) {
+            AppendData(builder, value.Data);
+            return;
+        }
+
+        switch (value.Type) {
+            case Registry.ProtoValueType.Varint:
+            case Registry.ProtoValueType.Fixed32:
+            case Registry.ProtoValueType.Fixed64:
+                _ = builder.Append(value.Number);
+                break;
+
+            case Registry.ProtoValueType.String:
+                _ = builder.Append(value.Text);
+                break;
+
+            case Registry.ProtoValueType.Bytes:
+                AppendHex(builder, value.Bytes.Span);
+                break;
+        }
+    }
+
+    private static void AppendData(StringBuilder builder, object? data) {
         switch (data) {
             case ulong number:
                 _ = builder.Append(number);

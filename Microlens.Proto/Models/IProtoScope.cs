@@ -1,15 +1,15 @@
-﻿using System;
+using System;
 
 namespace Microlens.Proto.Models;
 
 public interface IProtoScope {
-    public DateTime TimestampUtc { get; internal set; }
+    DateTime TimestampUtc { get; }
 
-    public string Channel { get; internal set; }
+    string Channel { get; }
 
-    public string Direction { get; internal set; }
+    string Direction { get; }
 
-    public string Phase { get; internal set; }
+    string Phase { get; }
 
-    public string? Path { get; internal set; }
+    string? Path { get; }
 }

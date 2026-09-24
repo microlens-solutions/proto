@@ -1,4 +1,4 @@
-﻿using Microlens.Proto.Models;
+using Microlens.Proto.Models;
 using Microlens.Proto.Shared;
 using System;
 using System.Buffers;
@@ -48,24 +48,7 @@ internal sealed class JsonProtoFormatter : IProtoFormatter {
 
             if (node.Value is { } value) {
                 writer.WriteString(_type, value.Type.ToString());
-
-                switch (value.Data) {
-                    case ulong number:
-                        writer.WriteNumber(_value, number);
-                        break;
-
-                    case uint number:
-                        writer.WriteNumber(_value, number);
-                        break;
-
-                    case string text:
-                        writer.WriteString(_value, text);
-                        break;
-
-                    case ReadOnlyMemory<byte> bytes:
-                        writer.WriteBase64String(_value, bytes.Span);
-                        break;
-                }
+                WriteValue(writer, value);
             }
 
             if (node.Children.Count > 0) {
@@ -77,5 +60,48 @@ internal sealed class JsonProtoFormatter : IProtoFormatter {
         }
 
         writer.WriteEndArray();
+    }
+
+    private static void WriteValue(Utf8JsonWriter writer, ProtoValue value) {
+        if (!value.Typed) {
+            WriteData(writer, value.Data);
+            return;
+        }
+
+        switch (value.Type) {
+            case Registry.ProtoValueType.Varint:
+            case Registry.ProtoValueType.Fixed32:
+            case Registry.ProtoValueType.Fixed64:
+                writer.WriteNumber(_value, value.Number);
+                break;
+
+            case Registry.ProtoValueType.String:
+                writer.WriteString(_value, value.Text);
+                break;
+
+            case Registry.ProtoValueType.Bytes:
+                writer.WriteBase64String(_value, value.Bytes.Span);
+                break;
+        }
+    }
+
+    private static void WriteData(Utf8JsonWriter writer, object? data) {
+        switch (data) {
+            case ulong number:
+                writer.WriteNumber(_value, number);
+                break;
+
+            case uint number:
+                writer.WriteNumber(_value, number);
+                break;
+
+            case string text:
+                writer.WriteString(_value, text);
+                break;
+
+            case ReadOnlyMemory<byte> bytes:
+                writer.WriteBase64String(_value, bytes.Span);
+                break;
+        }
     }
 }

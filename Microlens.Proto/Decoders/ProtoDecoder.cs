@@ -1,4 +1,4 @@
-﻿using Google.Protobuf;
+using Google.Protobuf;
 using Microlens.Proto.Models;
 using Microlens.Proto.Shared;
 using System;
@@ -69,16 +69,10 @@ internal sealed class ProtoDecoder : IProtoDecoder {
             if (wireType == WireFormat.WireType.LengthDelimited) {
                 if (TryDecodeNested(rawData, depth, out var nested)) {
                     children = nested;
-                    value = new ProtoValue {
-                        Type = Registry.ProtoValueType.Nested,
-                        Data = nested
-                    };
+                    value = ProtoValue.FromNodes(nested);
                 }
                 else if (TryDecodeUtf8Text(rawData.Span, out string text)) {
-                    value = new ProtoValue {
-                        Type = Registry.ProtoValueType.String,
-                        Data = text
-                    };
+                    value = ProtoValue.FromText(text);
                 }
             }
 
@@ -86,10 +80,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
                 FieldNumber = fieldNumber,
                 WireType = wireType,
                 RawData = rawData,
-                Value = value ?? new ProtoValue {
-                    Type = Registry.ProtoValueType.Bytes,
-                    Data = rawData
-                },
+                Value = value ?? ProtoValue.FromBytes(rawData),
                 Children = children
             };
 
@@ -135,11 +126,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
                     }
 
                     payload = reader.Sequence.Slice(start, reader.Position);
-                    value = new ProtoValue {
-                        Type = Registry.ProtoValueType.Varint,
-                        Data = varint
-                    };
-
+                    value = ProtoValue.FromNumber(Registry.ProtoValueType.Varint, varint);
                     return true;
                 }
 
@@ -155,11 +142,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
                     }
 
                     payload = reader.Sequence.Slice(reader.Position, 4);
-                    value = new ProtoValue {
-                        Type = Registry.ProtoValueType.Fixed32,
-                        Data = BinaryPrimitives.ReadUInt32LittleEndian(buffer)
-                    };
-
+                    value = ProtoValue.FromNumber(Registry.ProtoValueType.Fixed32, BinaryPrimitives.ReadUInt32LittleEndian(buffer));
                     reader.Advance(4);
                     return true;
                 }
@@ -176,11 +159,7 @@ internal sealed class ProtoDecoder : IProtoDecoder {
                     }
 
                     payload = reader.Sequence.Slice(reader.Position, 8);
-                    value = new ProtoValue {
-                        Type = Registry.ProtoValueType.Fixed64,
-                        Data = BinaryPrimitives.ReadUInt64LittleEndian(buffer)
-                    };
-
+                    value = ProtoValue.FromNumber(Registry.ProtoValueType.Fixed64, BinaryPrimitives.ReadUInt64LittleEndian(buffer));
                     reader.Advance(8);
                     return true;
                 }

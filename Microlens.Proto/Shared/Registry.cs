@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Microlens.Proto.Shared;
 
@@ -6,6 +6,8 @@ public static class Registry {
     internal const int MAXIMUM_NESTED_DEPTH = 64;
 
     internal const string DEFAULT_LOG_FORMAT = "TimestampUtc = `{TimestampUtc:O}`, Channel = `{Channel}`, Direction = `{Direction}`, Phase = `{Phase}`, Path = `{Path}`\nPayload:\n{Payload}";
+
+    internal const string LOGGER_CATEGORY = "Microlens.Proto";
 
     internal const string K_SKIP_PROTO_HANDLER = "k-skip-proto-handler";
 
@@ -41,6 +43,14 @@ public static class Registry {
         Request = 1,
 
         Response = 2
+    }
+
+    internal enum StreamStateType {
+        Undecided = 0,
+
+        Capturing = 1,
+
+        Bypassed = 2
     }
 
     public enum ProtoValueType {

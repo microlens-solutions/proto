@@ -1,4 +1,4 @@
-﻿using Grpc.Core;
+using Grpc.Core;
 using System;
 
 namespace Microlens.Proto.Extensions;
@@ -18,16 +18,20 @@ internal static class MetadataExtensions {
         return false;
     }
 
-    internal static Metadata Remove(this Metadata? metadata, string key) {
+    internal static Metadata Without(this Metadata metadata, string key) {
         ArgumentNullException.ThrowIfNull(metadata);
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
-        for (int i = metadata.Count - 1; i >= 0; i--) {
-            if (metadata[i].Key.Equals(key, StringComparison.OrdinalIgnoreCase)) {
-                metadata.RemoveAt(i);
+        var copy = new Metadata();
+
+        for (int i = 0; i < metadata.Count; i++) {
+            Metadata.Entry entry = metadata[i];
+
+            if (!entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase)) {
+                copy.Add(entry);
             }
         }
 
-        return metadata;
+        return copy;
     }
 }

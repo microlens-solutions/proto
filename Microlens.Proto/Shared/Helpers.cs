@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Microlens.Proto.Attributes;
 using Microlens.Proto.Extensions;
 using Microlens.Proto.Models;
@@ -45,7 +46,6 @@ internal static class Helpers {
 
     internal static bool IsGrpc(string? contentType) {
         ReadOnlySpan<char> media = GetMediaType(contentType);
-
         return media.StartsWith(Registry.MEDIA_TYPE_GRPC, StringComparison.OrdinalIgnoreCase) && (media.Length == Registry.MEDIA_TYPE_GRPC.Length || media[Registry.MEDIA_TYPE_GRPC.Length] is '+' or '-');
     }
 
@@ -67,12 +67,14 @@ internal static class Helpers {
         return skip;
     }
 
-    internal static bool TryConsumeSkipHeader(Metadata? headers) {
+    internal static bool TryConsumeSkipHeader<TRequest, TResponse>(ref ClientInterceptorContext<TRequest, TResponse> context) where TRequest : class where TResponse : class {
+        Metadata? headers = context.Options.Headers;
+
         if (headers is null || !headers.Contains(Registry.K_SKIP_PROTO_INTERCEPTOR)) {
             return false;
         }
 
-        _ = headers.Remove(Registry.K_SKIP_PROTO_INTERCEPTOR);
+        context = new ClientInterceptorContext<TRequest, TResponse>(context.Method, context.Host, context.Options.WithHeaders(headers.Without(Registry.K_SKIP_PROTO_INTERCEPTOR)));
         return true;
     }
 

@@ -1,7 +1,6 @@
-﻿using Microlens.Proto.Shared;
+using Microlens.Proto.Shared;
 using Microlens.Proto.Tracers;
 using Microsoft.IO;
-using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,32 +19,46 @@ internal sealed class ProtoHandler : DelegatingHandler {
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
 
-        if (_tracer.TraceRequest && request.Content is { } content && Helpers.IsProtobuf(content.Headers.ContentType?.MediaType)) {
-            await TraceAsync(content, Registry.ProtoDirectionType.Outbound, Registry.ProtoPhaseType.Request, GetPath(request), cancellationToken).ConfigureAwait(false);
+        string path = GetPath(request);
+
+        if (_tracer.TraceRequest && request.Content is { } content && Helpers.IsProtobuf(content.Headers.ContentType?.MediaType) && _tracer.CanCapture(content.Headers.ContentLength)) {
+            RecyclableMemoryStream buffer = await BufferAsync(content, cancellationToken).ConfigureAwait(false);
+            request.Content = new ProtoBufferedContent(content, buffer);
+            await _tracer.TraceAsync(buffer.GetReadOnlySequence(), Registry.ProtoChannelType.Http, Registry.ProtoDirectionType.Outbound, Registry.ProtoPhaseType.Request, path, cancellationToken).ConfigureAwait(false);
         }
 
         HttpResponseMessage response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        if (_tracer.TraceResponse && Helpers.IsProtobuf(response.Content.Headers.ContentType?.MediaType)) {
-            await TraceAsync(response.Content, Registry.ProtoDirectionType.Inbound, Registry.ProtoPhaseType.Response, GetPath(request), cancellationToken).ConfigureAwait(false);
+        if (_tracer.TraceResponse && Helpers.IsProtobuf(response.Content.Headers.ContentType?.MediaType) && _tracer.CanCapture(response.Content.Headers.ContentLength)) {
+            HttpContent body = response.Content;
+            RecyclableMemoryStream buffer;
+
+            try {
+                buffer = await BufferAsync(body, cancellationToken).ConfigureAwait(false);
+            }
+            catch {
+                response.Dispose();
+                throw;
+            }
+
+            response.Content = new ProtoBufferedContent(body, buffer);
+            await _tracer.TraceAsync(buffer.GetReadOnlySequence(), Registry.ProtoChannelType.Http, Registry.ProtoDirectionType.Inbound, Registry.ProtoPhaseType.Response, path, cancellationToken).ConfigureAwait(false);
         }
 
         return response;
     }
 
-    private async Task TraceAsync(HttpContent content, Registry.ProtoDirectionType direction, Registry.ProtoPhaseType phase, string path, CancellationToken cancellationToken) {
-        try {
-#if NET9_0_OR_GREATER
-            await content.LoadIntoBufferAsync(cancellationToken).ConfigureAwait(false);
-#else
-            await content.LoadIntoBufferAsync().ConfigureAwait(false);
-#endif
+    private static async Task<RecyclableMemoryStream> BufferAsync(HttpContent content, CancellationToken cancellationToken) {
+        RecyclableMemoryStream buffer = ProtoTracer.Streams.GetStream();
 
-            using RecyclableMemoryStream buffer = ProtoTracer.Streams.GetStream();
+        try {
             await content.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-            await _tracer.TraceAsync(buffer.GetReadOnlySequence(), Registry.ProtoChannelType.Http, direction, phase, path, cancellationToken).ConfigureAwait(false);
+            return buffer;
         }
-        catch (Exception) when (!cancellationToken.IsCancellationRequested) { }
+        catch {
+            buffer.Dispose();
+            throw;
+        }
     }
 
     private static string GetPath(HttpRequestMessage request) {
