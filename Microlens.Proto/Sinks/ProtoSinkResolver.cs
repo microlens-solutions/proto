@@ -1,4 +1,4 @@
-using Microlens.Proto.Shared;
+using Microlens.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 

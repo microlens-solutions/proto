@@ -1,3 +1,4 @@
+using Microlens.Internal;
 using Microlens.Proto.Shared;
 using System.Net.Http;
 

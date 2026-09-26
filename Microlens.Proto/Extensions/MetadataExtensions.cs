@@ -1,5 +1,5 @@
 using Grpc.Core;
-using Microlens.Proto.Shared;
+using Microlens.Internal;
 using System;
 
 namespace Microlens.Proto.Extensions;

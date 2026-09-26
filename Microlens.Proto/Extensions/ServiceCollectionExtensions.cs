@@ -1,10 +1,10 @@
 using Grpc.Net.ClientFactory;
+using Microlens.Internal;
 using Microlens.Proto.Decoders;
 using Microlens.Proto.Formatters;
 using Microlens.Proto.Inspectors;
 using Microlens.Proto.Models;
 using Microlens.Proto.Pipeline;
-using Microlens.Proto.Shared;
 using Microlens.Proto.Sinks;
 using Microlens.Proto.Tracers;
 using Microsoft.Extensions.DependencyInjection;
