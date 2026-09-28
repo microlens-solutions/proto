@@ -24,8 +24,8 @@ public static class ServiceCollectionExtensions {
     }
 
     public static IServiceCollection AddMicrolensProto(this IServiceCollection services, Action<ProtoOptions> options) {
-        Guard.Default.NotNull(services);
-        Guard.Default.NotNull(options);
+        Guard.NotNull(services);
+        Guard.NotNull(options);
 
         _ = services.Configure(options);
 
@@ -78,15 +78,15 @@ public static class ServiceCollectionExtensions {
     }
 
     public static IServiceCollection AddFormatter<TProtoFormatter>(this IServiceCollection services, string key) where TProtoFormatter : class, IProtoFormatter {
-        _ = Guard.Default.NotNull(services);
-        _ = Guard.Default.NotNullOrWhiteSpace(key);
+        _ = Guard.NotNull(services);
+        _ = Guard.NotNullOrWhiteSpace(key);
 
         return services.AddKeyedSingleton<IProtoFormatter, TProtoFormatter>(key);
     }
 
     public static IServiceCollection AddSink<TProtoSink>(this IServiceCollection services, string key) where TProtoSink : class, IProtoSink {
-        _ = Guard.Default.NotNull(services);
-        _ = Guard.Default.NotNullOrWhiteSpace(key);
+        _ = Guard.NotNull(services);
+        _ = Guard.NotNullOrWhiteSpace(key);
 
         return services.AddKeyedSingleton<IProtoSink, TProtoSink>(key);
     }

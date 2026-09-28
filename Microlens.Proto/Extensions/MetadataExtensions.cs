@@ -20,8 +20,8 @@ internal static class MetadataExtensions {
     }
 
     internal static Metadata Without(this Metadata metadata, string key) {
-        _ = Guard.Default.NotNull(metadata);
-        _ = Guard.Default.NotNullOrWhiteSpace(key);
+        _ = Guard.NotNull(metadata);
+        _ = Guard.NotNullOrWhiteSpace(key);
 
         var copy = new Metadata();
 

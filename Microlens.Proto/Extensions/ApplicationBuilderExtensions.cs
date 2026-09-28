@@ -9,7 +9,7 @@ namespace Microlens.Proto.Extensions;
 
 public static class ApplicationBuilderExtensions {
     public static IApplicationBuilder UseMicrolensProto(this IApplicationBuilder app) {
-        _ = Guard.Default.NotNull(app);
+        _ = Guard.NotNull(app);
 
         return app.Use(next => new ProtoMiddleware(next, app.ApplicationServices.GetRequiredService<ProtoTracer>()).InvokeAsync);
     }

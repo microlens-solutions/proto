@@ -8,7 +8,7 @@ internal sealed class ProtoSinkResolver(IServiceProvider provider) : IProtoSinkR
     private readonly IServiceProvider _provider = provider;
 
     public IProtoSink Get(string key) {
-        _ = Guard.Default.NotNullOrWhiteSpace(key);
+        _ = Guard.NotNullOrWhiteSpace(key);
 
         return _provider.GetKeyedService<IProtoSink>(key)
             ?? throw new InvalidOperationException($"No {nameof(IProtoSink)} is registered under '{key}'. Register it with AddSink<TProtoSink>(\"{key}\").");

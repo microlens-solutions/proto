@@ -6,7 +6,7 @@ namespace Microlens.Proto.Extensions;
 
 public static class HttpContentExtensions {
     public static HttpContent SkipProtoHandler(this HttpContent content) {
-        _ = Guard.Default.NotNull(content);
+        _ = Guard.NotNull(content);
 
         if (!content.Headers.Contains(Registry.K_SKIP_PROTO_HANDLER)) {
             content.Headers.Add(Registry.K_SKIP_PROTO_HANDLER, "true");
