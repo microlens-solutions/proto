@@ -1,4 +1,4 @@
-using Microlens.Proto.Shared;
+using Microlens.Essentials.Guards;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 
@@ -8,7 +8,7 @@ internal sealed class ProtoSinkResolver(IServiceProvider provider) : IProtoSinkR
     private readonly IServiceProvider _provider = provider;
 
     public IProtoSink Get(string key) {
-        Guard.NotNullOrWhiteSpace(key);
+        _ = Guard.Default.NotNullOrWhiteSpace(key);
 
         return _provider.GetKeyedService<IProtoSink>(key)
             ?? throw new InvalidOperationException($"No {nameof(IProtoSink)} is registered under '{key}'. Register it with AddSink<TProtoSink>(\"{key}\").");

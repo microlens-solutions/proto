@@ -1,4 +1,4 @@
-using Microlens.Proto.Shared;
+using Microlens.Essentials.Guards;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 
@@ -8,7 +8,7 @@ internal sealed class ProtoFormatterResolver(IServiceProvider provider) : IProto
     private readonly IServiceProvider _provider = provider;
 
     public IProtoFormatter Get(string key) {
-        Guard.NotNullOrWhiteSpace(key);
+        _ = Guard.Default.NotNullOrWhiteSpace(key);
 
         return _provider.GetKeyedService<IProtoFormatter>(key)
             ?? throw new InvalidOperationException($"No {nameof(IProtoFormatter)} is registered under '{key}'. Register it with AddFormatter<TProtoFormatter>(\"{key}\").");
